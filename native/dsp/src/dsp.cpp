@@ -108,7 +108,16 @@ void ParametricEq10::reset() noexcept {
 void ParametricEq10::process(float* data, std::size_t frames, std::size_t channels) noexcept {
   if (!data || channels == 0 || channels > 2) return;
   consume_events();
-  if (bypassed_) return;
+  if (frames == 0) return;
+  if (bypassed_) {
+    float peak = 0.0f;
+    for (std::size_t i = 0; i < frames * channels; ++i) {
+      if (std::isfinite(data[i])) peak = std::max(peak, std::abs(data[i]));
+    }
+    peak_level_.store(peak, std::memory_order_relaxed);
+    return;
+  }
+  float peak = 0.0f;
   for (std::size_t frame = 0; frame < frames; ++frame) {
     input_gain_ += smoothing_coefficient_ * (target_input_gain_ - input_gain_);
     output_gain_ += smoothing_coefficient_ * (target_output_gain_ - output_gain_);
@@ -117,7 +126,9 @@ void ParametricEq10::process(float* data, std::size_t frames, std::size_t channe
       auto& filters = ch == 0 ? left_ : right_;
       for (auto& filter : filters) s = filter.process(s);
       data[frame * channels + ch] = std::clamp(s * output_gain_, -1.0f, 1.0f);
+      peak = std::max(peak, std::abs(data[frame * channels + ch]));
     }
   }
+  peak_level_.store(peak, std::memory_order_relaxed);
 }
 }  // namespace core_eq

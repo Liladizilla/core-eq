@@ -140,7 +140,7 @@ class _CoreVisualizerScreenState extends State<CoreVisualizerScreen>
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(modules[selected][1], style: const TextStyle(color: ink, fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 1)),
             const SizedBox(height: 4),
-            Text('STAGE ' + (selected + 1).toString().padLeft(2, '0') + ' / ' + modules[selected][2],
+            Text('STAGE ${(selected + 1).toString().padLeft(2, '0')} / ${modules[selected][2]},
               style: const TextStyle(color: muted, fontSize: 7, letterSpacing: .6)),
           ])),
           TextButton(onPressed: () => setState(() => intensity = .64), child: const Text('RESET', style: TextStyle(color: muted, fontSize: 8))),
@@ -153,7 +153,7 @@ class _CoreVisualizerScreenState extends State<CoreVisualizerScreen>
             overlayColor: cyan.withValues(alpha: .08), trackHeight: 2,
             thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 5)),
             child: Slider(value: intensity, min: 0, max: 1, onChanged: (v) => setState(() => intensity = v)))),
-          SizedBox(width: 32, child: Text((intensity * 100).round().toString() + '%', textAlign: TextAlign.right,
+          SizedBox(width: 32, child: Text('${(intensity * 100).round()}%', textAlign: TextAlign.right,
             style: const TextStyle(color: cyan, fontSize: 9, fontFeatures: [FontFeature.tabularFigures()]))),
         ]),
         Row(children: [

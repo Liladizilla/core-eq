@@ -127,3 +127,110 @@ final class CoreEqNative {
   }) =>
       CoreEqStatus.fromCode(_process(handle, samples, frames, channels));
 }
+
+
+/// Owns one native engine handle and enforces its lifecycle.
+///
+/// Library discovery/loading remains the platform host's responsibility. This
+/// class intentionally does not claim that a device audio stream is connected.
+final class CoreEqEngineSession {
+  CoreEqEngineSession._(this.native, this.handle);
+
+  static const supportedAbiVersion = 1;
+
+  final CoreEqNative native;
+  final Pointer<CoreEqHandle> handle;
+  bool _disposed = false;
+
+  /// Binds the provided library, validates its ABI, and creates an engine.
+  ///
+  /// Throws [StateError] for an incompatible ABI or native allocation failure.
+  factory CoreEqEngineSession.open(DynamicLibrary library) {
+    final native = CoreEqNative(library);
+    final version = native.abiVersion;
+    if (version != supportedAbiVersion) {
+      throw StateError(
+        'Unsupported CORE-EQ native ABI $version; '
+        'expected $supportedAbiVersion.',
+      );
+    }
+
+    final handle = native.create();
+    if (handle == nullptr) {
+      throw StateError('CORE-EQ native engine allocation failed.');
+    }
+    return CoreEqEngineSession._(native, handle);
+  }
+
+  bool get isDisposed => _disposed;
+
+  void _ensureOpen() {
+    if (_disposed) {
+      throw StateError('CORE-EQ engine session has been disposed.');
+    }
+  }
+
+  CoreEqStatus setInputGainDb(double db) {
+    _ensureOpen();
+    return native.setInputGainDb(handle, db);
+  }
+
+  CoreEqStatus setOutputGainDb(double db) {
+    _ensureOpen();
+    return native.setOutputGainDb(handle, db);
+  }
+
+  CoreEqStatus setBypassed(bool bypassed) {
+    _ensureOpen();
+    return native.setBypassed(handle, bypassed);
+  }
+
+  CoreEqStatus configureBand({
+    required int band,
+    required double frequencyHz,
+    required double q,
+    required double gainDb,
+    required double sampleRateHz,
+  }) {
+    _ensureOpen();
+    return native.configureBand(
+      handle,
+      band: band,
+      frequencyHz: frequencyHz,
+      q: q,
+      gainDb: gainDb,
+      sampleRateHz: sampleRateHz,
+    );
+  }
+
+  CoreEqStatus reset() {
+    _ensureOpen();
+    return native.reset(handle);
+  }
+
+  /// Processes caller-owned interleaved PCM in native memory.
+  ///
+  /// The caller must keep [samples] valid for the entire call and invoke
+  /// processing from only one render thread. Parameter setters must be
+  /// serialized through a single producer.
+  CoreEqStatus process({
+    required Pointer<Float> samples,
+    required int frames,
+    required int channels,
+  }) {
+    _ensureOpen();
+    return native.process(
+      handle,
+      samples: samples,
+      frames: frames,
+      channels: channels,
+    );
+  }
+
+  /// Releases the native handle. Repeated disposal is harmless.
+  void dispose() {
+    if (_disposed) return;
+    native.destroy(handle);
+    _disposed = true;
+  }
+}

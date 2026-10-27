@@ -175,7 +175,7 @@ class _CoreDeckScreenState extends State<CoreDeckScreen> {
     return Container(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7), decoration: const BoxDecoration(border: Border(top: BorderSide(color: line))), child: Row(children: [
       const Text('IN', style: TextStyle(color: muted, fontSize: 8, letterSpacing: 1)),
       const SizedBox(width: 8),
-      Expanded(child: Row(children: values.map((v) => Expanded(child: Container(margin: const EdgeInsets.symmetric(horizontal: 1), height: 7, color: bar(v))).toList())),
+      Expanded(child: Row(children: values.map((v) => Expanded(child: Container(margin: const EdgeInsets.symmetric(horizontal: 1), height: 7, color: bar(v)))).toList())),
       const SizedBox(width: 8),
       const Text('OUT', style: TextStyle(color: muted, fontSize: 8, letterSpacing: 1)),
     ]));

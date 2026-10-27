@@ -24,27 +24,46 @@ final class CoreEqControlMapper {
     'Podcast': <double>[-4, -3, -1, 2, 3, 2, 1, 0, -1, -2],
   };
 
+  /// Submits one band update to the native engine.
+  ///
+  /// Invalid band indices are rejected before crossing the FFI boundary.
+  /// A false result means the native engine rejected the update, including
+  /// when its bounded parameter queue is full.
+  bool applyBand(int band, double gainDb) {
+    if (band < 0 || band >= frequenciesHz.length) {
+      throw RangeError.range(band, 0, frequenciesHz.length - 1, 'band');
+    }
+    if (!gainDb.isFinite || gainDb < -12 || gainDb > 12) {
+      throw ArgumentError.value(
+        gainDb,
+        'gainDb',
+        'Expected a finite gain from -12 dB through +12 dB.',
+      );
+    }
+    return _engine.configureBand(
+          band: band,
+          frequencyHz: frequenciesHz[band],
+          q: q,
+          gainDb: gainDb,
+          sampleRateHz: sampleRateHz,
+        ) ==
+        CoreEqStatus.ok;
+  }
+
   /// Applies one named preset to all ten native filters.
   ///
-  /// Returns false when any native call reports a non-OK status. Calls are
-  /// submitted sequentially because the native parameter queue is SPSC.
+  /// Stops at the first rejected event instead of flooding an already-full
+  /// native queue with the remaining preset updates. Updates already accepted
+  /// by the native queue are not rolled back.
   bool applyPreset(String name) {
     final gains = presetGainsDb[name];
     if (gains == null) {
       throw ArgumentError.value(name, 'name', 'Unknown CORE-EQ preset');
     }
-    var success = true;
     for (var band = 0; band < frequenciesHz.length; band++) {
-      final status = _engine.configureBand(
-        band: band,
-        frequencyHz: frequenciesHz[band],
-        q: q,
-        gainDb: gains[band],
-        sampleRateHz: sampleRateHz,
-      );
-      if (status != CoreEqStatus.ok) success = false;
+      if (!applyBand(band, gains[band])) return false;
     }
-    return success;
+    return true;
   }
 
   /// Applies the consumer output control in decibels.

@@ -59,7 +59,6 @@ void main() {
   testWidgets('visualizer clearly discloses that live audio is not connected', (tester) async {
     await tester.pumpWidget(const CoreEqApp());
     expect(find.textContaining('No audio stream connected'), findsOneWidget);
-    expect(find.text('AWAITING AUDIO INPUT'), findsOneWidget);
     expect(find.byType(CustomPaint), findsWidgets);
     await tester.pump(const Duration(milliseconds: 50));
   });

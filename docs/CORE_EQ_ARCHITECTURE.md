@@ -1,6 +1,6 @@
 # CORE-EQ Architecture Notes
 
-## Current milestone: Phase 2 / C ABI bridge
+## Current milestone: Phase 3 / Android native packaging
 
 CORE-EQ is an independent repository. ZillaEQ is not a dependency and will not receive CORE-EQ implementation changes.
 
@@ -25,6 +25,14 @@ The Flutter screen is still a presentation prototype. Its EQ curve, meters, pres
 5. Android audio integration experiments with native test playback and device compatibility reporting.
 6. iOS in-app player/AUv3, followed by advanced modules gated by tests and performance.
 
+## Android native packaging
+
+Run `bash scripts/build_android_native.sh` after installing Flutter, Android SDK command-line tools, and an Android NDK. The script builds the shared C ABI library for `arm64-v8a`, `armeabi-v7a`, and `x86_64`, then places each `libcore_eq.so` in `android/app/src/main/jniLibs/<abi>/`. Flutter's Android packaging includes these JNI libraries in the APK. The CI workflow generates the Android runner first, runs the packaging script, verifies each ABI artifact, and only then builds the APK.
+
+The Dart `CoreEqNative.openDefault()` factory resolves the library name for the current Flutter target and checks ABI version 1. For Android, the matching `libcore_eq.so` must be packaged in the APK. Linux, Windows, and macOS library names are mapped but their native binaries are not built or bundled by this Android-specific script. iOS requires its own static/framework and AUv3 integration path; it is deliberately not treated as a normal `DynamicLibrary.open` target.
+
+This packaging step does not initialize the engine from the UI and does not provide audio-device routing. It only makes the native library available to the application process. The parameter queue remains single-producer/single-consumer: serialize control calls and process audio from one render thread.
+
 ## C ABI contract
 
 - The ABI version function reports the major version; incompatible signatures require a version change.
@@ -47,6 +55,7 @@ Android output effects and session attachment vary by OS version, OEM and audio 
 - [ ] C++ DSP unit tests pass.
 - [ ] C ABI validation and processing tests pass.
 - [ ] Flutter analyze and widget tests pass.
-- [ ] Dart FFI wrapper uses typed bindings and has no PCM copies through platform channels.
+- [ ] Android CI builds and packages native libraries for all configured ABIs.
+- [ ] Dart FFI wrapper validates ABI version and reports missing library errors.
 - [ ] UI distinguishes prototype state from live native engine telemetry.
 - [ ] Android/iOS integration claims are made only after device tests.

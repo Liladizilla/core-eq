@@ -74,6 +74,34 @@ int main() {
   eq.process(stereo.data(), 512, 2);
   for (float x : stereo) if (!std::isfinite(x) || std::abs(x) > 1.0f) return EXIT_FAILURE;
 
+  // A signal in the left channel must not leak into the right channel. Each
+  // channel has independent filter state even though coefficients are shared.
+  core_eq::ParametricEq10 isolation;
+  isolation.configure_band(0, 1000.0f, 1.0f, 9.0f, sr);
+  std::vector<float> left_only(512 * 2, 0.0f);
+  for (std::size_t frame = 0; frame < 512; ++frame) {
+    left_only[frame * 2] = 0.2f * std::sin(
+        2.0f * 3.14159265358979323846f * 1000.0f * frame / sr);
+  }
+  isolation.process(left_only.data(), 512, 2);
+  bool left_changed = false;
+  for (std::size_t frame = 0; frame < 512; ++frame) {
+    if (!std::isfinite(left_only[frame * 2]) ||
+        !std::isfinite(left_only[frame * 2 + 1])) {
+      std::cerr << "Stereo isolation produced a non-finite sample\n";
+      return EXIT_FAILURE;
+    }
+    if (std::abs(left_only[frame * 2]) > 1.0e-5f) left_changed = true;
+    if (left_only[frame * 2 + 1] != 0.0f) {
+      std::cerr << "Left-channel signal leaked into the right channel\n";
+      return EXIT_FAILURE;
+    }
+  }
+  if (!left_changed) {
+    std::cerr << "EQ did not process the active left channel\n";
+    return EXIT_FAILURE;
+  }
+
   core_eq::ParametricEq10 bypass;
   bypass.set_bypassed(true);
   std::vector<float> setter_bypass(32, 0.25f);

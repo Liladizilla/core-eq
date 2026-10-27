@@ -11,7 +11,11 @@ float db_to_gain(float db) noexcept { return std::pow(10.0f, db / 20.0f); }
 BiquadCoefficients design_peaking(float f, float q, float gain_db, float sr) noexcept {
   BiquadCoefficients c{};
   if (!(sr > 0.0f) || !std::isfinite(sr) || !(q > 0.0f) || !std::isfinite(f) || !std::isfinite(q) || !std::isfinite(gain_db)) return c;
-  f = std::clamp(f, 1.0f, sr * 0.49f);
+  // Keep the clamp bounds ordered even for unusual positive sample rates.
+  // std::clamp requires lo <= hi; a fixed 1 Hz lower bound violates that
+  // precondition when sr < about 2.041 Hz.
+  const float max_frequency = sr * 0.49f;
+  f = std::clamp(f, std::min(1.0f, max_frequency), max_frequency);
   const float A = std::pow(10.0f, gain_db / 40.0f);
   const float w = 2.0f * kPi * f / sr;
   const float alpha = std::sin(w) / (2.0f * q);

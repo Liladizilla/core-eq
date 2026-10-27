@@ -18,6 +18,10 @@ int main() {
   if (core_eq_configure_band(handle, 0, 1000.0f, std::numeric_limits<float>::denorm_min(), 6.0f, 48000.0f) != CORE_EQ_STATUS_INVALID_ARGUMENT) return EXIT_FAILURE;
   if (core_eq_process(handle, nullptr, 1, 2) != CORE_EQ_STATUS_INVALID_ARGUMENT) return EXIT_FAILURE;
   if (core_eq_process(handle, nullptr, 0, 2) != CORE_EQ_STATUS_OK) return EXIT_FAILURE;
+  float peak_level = -1.0f;
+  if (core_eq_get_peak_level(handle, &peak_level) != CORE_EQ_STATUS_OK || peak_level != 0.0f) return EXIT_FAILURE;
+  if (core_eq_get_peak_level(nullptr, &peak_level) != CORE_EQ_STATUS_INVALID_ARGUMENT) return EXIT_FAILURE;
+  if (core_eq_get_peak_level(handle, nullptr) != CORE_EQ_STATUS_INVALID_ARGUMENT) return EXIT_FAILURE;
 
   if (core_eq_set_bypassed(handle, 1) != CORE_EQ_STATUS_OK) return EXIT_FAILURE;
   std::vector<float> samples(64, 0.25f);
@@ -33,6 +37,11 @@ int main() {
   std::vector<float> audio(256, 0.1f);
   if (core_eq_process(handle, audio.data(), 256, 1) != CORE_EQ_STATUS_OK) return EXIT_FAILURE;
   for (float sample : audio) if (!std::isfinite(sample) || std::abs(sample) > 1.0f) return EXIT_FAILURE;
+  if (core_eq_get_peak_level(handle, &peak_level) != CORE_EQ_STATUS_OK ||
+      !std::isfinite(peak_level) || peak_level <= 0.0f || peak_level > 1.0f) {
+    std::cerr << "Peak meter did not report processed audio\n";
+    return EXIT_FAILURE;
+  }
 
   core_eq_destroy(handle);
 

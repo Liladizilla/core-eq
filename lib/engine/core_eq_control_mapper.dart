@@ -7,7 +7,7 @@ import '../native/core_eq_native.dart';
 final class CoreEqControlMapper {
   CoreEqControlMapper(this._engine);
 
-  final CoreEqEngineSession _engine;
+  final CoreEqEngineControls _engine;
 
   static const frequenciesHz = <double>[
     32, 64, 125, 250, 500, 1000, 2000, 4000, 8000, 16000,

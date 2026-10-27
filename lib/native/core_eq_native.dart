@@ -176,11 +176,29 @@ final class CoreEqNative {
 }
 
 
+/// The control surface consumed by [CoreEqControlMapper].
+///
+/// Keeping this contract separate from the FFI implementation lets the
+/// mapper's validation and queue-failure behavior be tested without loading a
+/// platform-specific native library.
+abstract interface class CoreEqEngineControls {
+  CoreEqStatus setOutputGainDb(double db);
+  CoreEqStatus setBypassed(bool bypassed);
+  CoreEqStatus configureBand({
+    required int band,
+    required double frequencyHz,
+    required double q,
+    required double gainDb,
+    required double sampleRateHz,
+  });
+  CoreEqStatus reset();
+}
+
 /// Owns one native engine handle and enforces its lifecycle.
 ///
 /// The raw handle and low-level bindings stay private so callers cannot bypass
 /// the session's disposed-state checks.
-final class CoreEqEngineSession {
+final class CoreEqEngineSession implements CoreEqEngineControls {
   CoreEqEngineSession._(this._native, this._handle);
 
   static const supportedAbiVersion = 1;
@@ -222,16 +240,19 @@ final class CoreEqEngineSession {
     return _native.setInputGainDb(_handle, db);
   }
 
+  @override
   CoreEqStatus setOutputGainDb(double db) {
     _ensureOpen();
     return _native.setOutputGainDb(_handle, db);
   }
 
+  @override
   CoreEqStatus setBypassed(bool bypassed) {
     _ensureOpen();
     return _native.setBypassed(_handle, bypassed);
   }
 
+  @override
   CoreEqStatus configureBand({
     required int band,
     required double frequencyHz,
@@ -250,6 +271,7 @@ final class CoreEqEngineSession {
     );
   }
 
+  @override
   CoreEqStatus reset() {
     _ensureOpen();
     return _native.reset(_handle);

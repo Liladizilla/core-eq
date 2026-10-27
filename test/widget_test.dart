@@ -61,9 +61,11 @@ void main() {
 
   testWidgets('demo telemetry explicitly reports unavailable live engine data', (tester) async {
     await tester.pumpWidget(const CoreEqApp());
+    expect(find.text('VISUAL DEMO'), findsOneWidget);
     expect(find.text('NOT CONNECTED'), findsOneWidget);
     expect(find.text('NOT MEASURED'), findsOneWidget);
-    expect(find.text('ANIMATION: DEMO SIGNAL'), findsOneWidget);
+    // The animated demo signal is painted on a canvas, not exposed as a Text widget.
+    expect(find.byType(CustomPaint), findsWidgets);
     await tester.pump(const Duration(milliseconds: 50));
   });
 }

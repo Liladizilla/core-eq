@@ -61,6 +61,13 @@ core_eq_status core_eq_configure_band(core_eq_handle* handle, uint32_t band,
   event.type = core_eq::ParameterType::kBandCoefficients;
   event.band = static_cast<std::uint8_t>(band);
   event.coefficients = core_eq::design_peaking(frequency_hz, q, gain_db, sample_rate_hz);
+  const auto& coefficients = event.coefficients;
+  if (!std::isfinite(coefficients.a0) || std::abs(coefficients.a0) < 1.0e-12f ||
+      !std::isfinite(coefficients.a1) || !std::isfinite(coefficients.a2) ||
+      !std::isfinite(coefficients.b0) || !std::isfinite(coefficients.b1) ||
+      !std::isfinite(coefficients.b2)) {
+    return CORE_EQ_STATUS_INVALID_ARGUMENT;
+  }
   return enqueue_event(handle, event);
 }
 

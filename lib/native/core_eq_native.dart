@@ -15,31 +15,31 @@ enum CoreEqStatus {
       );
 }
 
-final class _CoreEqHandle extends Opaque {}
+final class CoreEqHandle extends Opaque {}
 
 typedef _AbiVersionNative = Uint32 Function();
 typedef _AbiVersionDart = int Function();
-typedef _CreateNative = Pointer<_CoreEqHandle> Function();
-typedef _CreateDart = Pointer<_CoreEqHandle> Function();
-typedef _DestroyNative = Void Function(Pointer<_CoreEqHandle>);
-typedef _DestroyDart = void Function(Pointer<_CoreEqHandle>);
-typedef _SetGainNative = Int32 Function(Pointer<_CoreEqHandle>, Float);
-typedef _SetGainDart = int Function(Pointer<_CoreEqHandle>, double);
-typedef _SetBypassNative = Int32 Function(Pointer<_CoreEqHandle>, Int32);
-typedef _SetBypassDart = int Function(Pointer<_CoreEqHandle>, int);
+typedef _CreateNative = Pointer<CoreEqHandle> Function();
+typedef _CreateDart = Pointer<CoreEqHandle> Function();
+typedef _DestroyNative = Void Function(Pointer<CoreEqHandle>);
+typedef _DestroyDart = void Function(Pointer<CoreEqHandle>);
+typedef _SetGainNative = Int32 Function(Pointer<CoreEqHandle>, Float);
+typedef _SetGainDart = int Function(Pointer<CoreEqHandle>, double);
+typedef _SetBypassNative = Int32 Function(Pointer<CoreEqHandle>, Int32);
+typedef _SetBypassDart = int Function(Pointer<CoreEqHandle>, int);
 typedef _ConfigureBandNative = Int32 Function(
-  Pointer<_CoreEqHandle>, Uint32, Float, Float, Float, Float,
+  Pointer<CoreEqHandle>, Uint32, Float, Float, Float, Float,
 );
 typedef _ConfigureBandDart = int Function(
-  Pointer<_CoreEqHandle>, int, double, double, double, double,
+  Pointer<CoreEqHandle>, int, double, double, double, double,
 );
-typedef _ResetNative = Int32 Function(Pointer<_CoreEqHandle>);
-typedef _ResetDart = int Function(Pointer<_CoreEqHandle>);
+typedef _ResetNative = Int32 Function(Pointer<CoreEqHandle>);
+typedef _ResetDart = int Function(Pointer<CoreEqHandle>);
 typedef _ProcessNative = Int32 Function(
-  Pointer<_CoreEqHandle>, Pointer<Float>, IntPtr, IntPtr,
+  Pointer<CoreEqHandle>, Pointer<Float>, IntPtr, IntPtr,
 );
 typedef _ProcessDart = int Function(
-  Pointer<_CoreEqHandle>, Pointer<Float>, int, int,
+  Pointer<CoreEqHandle>, Pointer<Float>, int, int,
 );
 
 /// Typed Dart FFI bindings. The caller must load the platform library and
@@ -86,22 +86,22 @@ final class CoreEqNative {
   final _ProcessDart _process;
 
   /// Creates an engine handle. A null pointer indicates allocation failure.
-  Pointer<_CoreEqHandle> create() => _create();
+  Pointer<CoreEqHandle> create() => _create();
 
   /// Destroys a handle returned by [create].
-  void destroy(Pointer<_CoreEqHandle> handle) => _destroy(handle);
+  void destroy(Pointer<CoreEqHandle> handle) => _destroy(handle);
 
-  CoreEqStatus setInputGainDb(Pointer<_CoreEqHandle> handle, double db) =>
+  CoreEqStatus setInputGainDb(Pointer<CoreEqHandle> handle, double db) =>
       CoreEqStatus.fromCode(_setInputGain(handle, db));
 
-  CoreEqStatus setOutputGainDb(Pointer<_CoreEqHandle> handle, double db) =>
+  CoreEqStatus setOutputGainDb(Pointer<CoreEqHandle> handle, double db) =>
       CoreEqStatus.fromCode(_setOutputGain(handle, db));
 
-  CoreEqStatus setBypassed(Pointer<_CoreEqHandle> handle, bool bypassed) =>
+  CoreEqStatus setBypassed(Pointer<CoreEqHandle> handle, bool bypassed) =>
       CoreEqStatus.fromCode(_setBypassed(handle, bypassed ? 1 : 0));
 
   CoreEqStatus configureBand(
-    Pointer<_CoreEqHandle> handle, {
+    Pointer<CoreEqHandle> handle, {
     required int band,
     required double frequencyHz,
     required double q,
@@ -112,12 +112,12 @@ final class CoreEqNative {
         _configureBand(handle, band, frequencyHz, q, gainDb, sampleRateHz),
       );
 
-  CoreEqStatus reset(Pointer<_CoreEqHandle> handle) =>
+  CoreEqStatus reset(Pointer<CoreEqHandle> handle) =>
       CoreEqStatus.fromCode(_reset(handle));
 
   /// Processes interleaved float PCM in caller-owned native memory.
   CoreEqStatus process(
-    Pointer<_CoreEqHandle> handle, {
+    Pointer<CoreEqHandle> handle, {
     required Pointer<Float> samples,
     required int frames,
     required int channels,

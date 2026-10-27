@@ -6,14 +6,15 @@ import 'package:flutter/foundation.dart';
 enum CoreEqStatus {
   ok(0),
   invalidArgument(1),
-  queueFull(2);
+  queueFull(2),
+  unknown(-1);
 
   const CoreEqStatus(this.code);
   final int code;
 
   static CoreEqStatus fromCode(int code) => CoreEqStatus.values.firstWhere(
         (status) => status.code == code,
-        orElse: () => CoreEqStatus.invalidArgument,
+        orElse: () => CoreEqStatus.unknown,
       );
 }
 
@@ -44,8 +45,8 @@ typedef _ProcessDart = int Function(
   Pointer<CoreEqHandle>, Pointer<Float>, int, int,
 );
 
-/// Typed Dart FFI bindings. Control calls must be serialized because the
-/// native parameter queue is single-producer/single-consumer.
+/// Typed Dart FFI bindings. The caller must load the platform library and
+/// serialize parameter setters because the native queue is single-producer.
 final class CoreEqNative {
   static const int supportedAbiVersion = 1;
 
@@ -122,6 +123,8 @@ final class CoreEqNative {
         );
 
   final _AbiVersionDart _abiVersion;
+
+  /// Returns the native ABI major version.
   int get abiVersion => _abiVersion();
   final _CreateDart _create;
   final _DestroyDart _destroy;
@@ -179,4 +182,114 @@ final class CoreEqNative {
     required int channels,
   }) =>
       CoreEqStatus.fromCode(_process(handle, samples, frames, channels));
+}
+
+
+/// Owns one native engine handle and enforces its lifecycle.
+///
+/// The raw handle and low-level bindings stay private so callers cannot bypass
+/// the session's disposed-state checks.
+final class CoreEqEngineSession {
+  CoreEqEngineSession._(this._native, this._handle);
+
+  static const supportedAbiVersion = 1;
+
+  final CoreEqNative _native;
+  final Pointer<CoreEqHandle> _handle;
+  bool _disposed = false;
+
+  /// Binds the provided library, validates its ABI, and creates an engine.
+  ///
+  /// Throws [StateError] for an incompatible ABI or native allocation failure.
+  factory CoreEqEngineSession.open(DynamicLibrary library) {
+    final native = CoreEqNative(library);
+    final version = native.abiVersion;
+    if (version != supportedAbiVersion) {
+      throw StateError(
+        'Unsupported CORE-EQ native ABI $version; '
+        'expected $supportedAbiVersion.',
+      );
+    }
+
+    final handle = native.create();
+    if (handle == nullptr) {
+      throw StateError('CORE-EQ native engine allocation failed.');
+    }
+    return CoreEqEngineSession._(native, handle);
+  }
+
+  bool get isDisposed => _disposed;
+
+  void _ensureOpen() {
+    if (_disposed) {
+      throw StateError('CORE-EQ engine session has been disposed.');
+    }
+  }
+
+  CoreEqStatus setInputGainDb(double db) {
+    _ensureOpen();
+    return _native.setInputGainDb(_handle, db);
+  }
+
+  CoreEqStatus setOutputGainDb(double db) {
+    _ensureOpen();
+    return _native.setOutputGainDb(_handle, db);
+  }
+
+  CoreEqStatus setBypassed(bool bypassed) {
+    _ensureOpen();
+    return _native.setBypassed(_handle, bypassed);
+  }
+
+  CoreEqStatus configureBand({
+    required int band,
+    required double frequencyHz,
+    required double q,
+    required double gainDb,
+    required double sampleRateHz,
+  }) {
+    _ensureOpen();
+    return _native.configureBand(
+      _handle,
+      band: band,
+      frequencyHz: frequencyHz,
+      q: q,
+      gainDb: gainDb,
+      sampleRateHz: sampleRateHz,
+    );
+  }
+
+  CoreEqStatus reset() {
+    _ensureOpen();
+    return _native.reset(_handle);
+  }
+
+  /// Processes caller-owned interleaved PCM in native memory.
+  ///
+  /// The caller must keep [samples] valid for the entire call and invoke
+  /// processing from only one render thread. Parameter setters must be
+  /// serialized through a single producer.
+  CoreEqStatus process({
+    required Pointer<Float> samples,
+    required int frames,
+    required int channels,
+  }) {
+    _ensureOpen();
+    return _native.process(
+      _handle,
+      samples: samples,
+      frames: frames,
+      channels: channels,
+    );
+  }
+
+  /// Releases the native handle. Repeated disposal is harmless.
+  ///
+  /// Stop and join any render thread using this session before disposing it;
+  /// disposal is not synchronized with an in-flight native process call.
+  void dispose() {
+    if (_disposed) return;
+    _native.destroy(_handle);
+    _disposed = true;
+  }
 }

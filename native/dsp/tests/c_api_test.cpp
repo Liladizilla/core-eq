@@ -34,6 +34,18 @@ int main() {
   for (float sample : audio) if (!std::isfinite(sample) || std::abs(sample) > 1.0f) return EXIT_FAILURE;
 
   core_eq_destroy(handle);
+
+  core_eq_handle* queue_handle = core_eq_create();
+  if (queue_handle == nullptr) return EXIT_FAILURE;
+  for (int i = 0; i < 127; ++i) {
+    if (core_eq_set_input_gain_db(queue_handle, 0.0f) != CORE_EQ_STATUS_OK) return EXIT_FAILURE;
+  }
+  if (core_eq_set_input_gain_db(queue_handle, 0.0f) != CORE_EQ_STATUS_QUEUE_FULL) {
+    std::cerr << "Full parameter queue was not reported\n";
+    return EXIT_FAILURE;
+  }
+  core_eq_destroy(queue_handle);
+
   std::cout << "CORE-EQ C ABI tests passed\n";
   return EXIT_SUCCESS;
 }

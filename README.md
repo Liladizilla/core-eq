@@ -6,7 +6,9 @@ CORE-EQ is a standalone, cross-platform modular audio processing project. It is 
 
 - **Android:** pursue system-wide processing where device APIs permit it, with explicit compatibility reporting and a foreground service. Session attachment and playback capture have different limitations; neither will be advertised as universally supported.
 - **iOS:** provide a reference player and AUv3 mastering effect. iOS does not allow third-party apps to intercept arbitrary audio from other apps system-wide.
-- **UI:** Flutter command-deck interface.
+- **UI:** Flutter hardware-inspired command deck with an animated spherical spectrum, precision labels, and flat machined control surfaces.
+- **Visual reference:** [Music Player, Web/UX & UI by Artemii Lebedev](https://dribbble.com/shots/18450373-Music-Player-Web-UX-UI). The current sphere is procedural 2.5D canvas artwork with demo animation, not a live 3D engine or audio-reactive feed.
+- **Typography:** use a geometric futuristic display face in the spirit of Nexus. The commercial Nexus font is not bundled; add the properly licensed font files before claiming an exact match.
 - **DSP:** shared C++17 engine, exposed through a narrow C ABI/FFI boundary.
 - **Privacy:** audio processing stays on-device; captured samples are not retained or transmitted.
 
@@ -26,7 +28,7 @@ iOS system-wide interception is not available to ordinary third-party apps. The 
 
 ## Development status
 
-The standalone repository now contains the transferred Command Deck UI, Flutter widget tests, a C++17 10-band parametric EQ foundation, a bounded single-producer/single-consumer parameter queue, smoothed input/output gain, and native DSP smoke tests. CI compiles and tests the C++ core. The Command Deck meters, latency/CPU telemetry, presets and bypass control are still presentation-only and are not yet connected to native processing or device audio. Android/iOS audio integration remains unimplemented and must be validated on real hardware.
+The standalone repository contains the Flutter command deck, an animated orbital spectrum presentation, widget tests, a C++17 10-band parametric EQ foundation, a bounded single-producer/single-consumer parameter queue, smoothed input/output gain, and native DSP smoke tests. The visualizer animation, numeric meters, latency/CPU telemetry, preset controls, and bypass switch remain presentation-only; they are not connected to native processing or device audio. Android/iOS audio integration remains unimplemented and must be validated on real hardware.
 
 ## Planned structure
 

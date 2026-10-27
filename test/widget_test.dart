@@ -13,6 +13,8 @@ void main() {
 
   testWidgets('spectrum mode switches the visualizer label', (tester) async {
     await tester.pumpWidget(const CoreEqApp());
+    await tester.ensureVisible(find.text('SPECTRUM'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('SPECTRUM'));
     await tester.pump(const Duration(milliseconds: 50));
     expect(find.text('SPECTRUM / FFT'), findsOneWidget);

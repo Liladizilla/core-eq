@@ -228,6 +228,9 @@ final class CoreEqEngineSession {
   }
 
   /// Releases the native handle. Repeated disposal is harmless.
+  ///
+  /// Stop and join any render thread using this session before disposing it;
+  /// disposal is not synchronized with an in-flight native process call.
   void dispose() {
     if (_disposed) return;
     native.destroy(handle);

@@ -1,5 +1,6 @@
 import 'dart:ffi';
 
+import 'package:ffi/ffi.dart';
 import 'package:flutter/foundation.dart';
 
 /// Status codes returned by the CORE-EQ C ABI.
@@ -204,6 +205,7 @@ final class CoreEqNative {
 /// platform-specific native library.
 abstract interface class CoreEqEngineControls {
   CoreEqStatus setOutputGainDb(double db);
+  CoreEqStatus getPeakLevel(Pointer<Float> peakLevel);
   CoreEqStatus setBypassed(bool bypassed);
   CoreEqStatus configureBand({
     required int band,
@@ -213,6 +215,15 @@ abstract interface class CoreEqEngineControls {
     required double sampleRateHz,
   });
   CoreEqStatus reset();
+}
+
+/// Result of reading the latest native output peak.
+/// A null [level] means the native read failed.
+final class CoreEqPeakReading {
+  const CoreEqPeakReading({required this.status, required this.level});
+
+  final CoreEqStatus status;
+  final double? level;
 }
 
 /// Owns one native engine handle and enforces its lifecycle.
@@ -298,12 +309,22 @@ final class CoreEqEngineSession implements CoreEqEngineControls {
     return _native.reset(_handle);
   }
 
-  /// Reads the latest peak value into caller-owned native memory.
+  /// Reads the latest processed-block peak with managed temporary memory.
   ///
-  /// [peakLevel] must point to writable native memory for one [Float]. The
-  /// returned value is linear amplitude (0.0 to 1.0), not decibels. This
-  /// reports the latest processed block only; it does not create an audio
-  /// stream or make the visualizer live.
+  /// The returned amplitude is linear (0.0 to 1.0), not decibels. This reads
+  /// the most recent processed block; it does not create an audio stream.
+  CoreEqPeakReading readPeakLevel() {
+    _ensureOpen();
+    final output = calloc<Float>();
+    try {
+      final status = _native.getPeakLevel(_handle, output);
+      return CoreEqPeakReading(status: status, level: status == CoreEqStatus.ok ? output.value : null);
+    } finally {
+      calloc.free(output);
+    }
+  }
+
+  /// Low-level read into caller-owned native memory. Prefer [readPeakLevel].
   CoreEqStatus getPeakLevel(Pointer<Float> peakLevel) {
     _ensureOpen();
     return _native.getPeakLevel(_handle, peakLevel);

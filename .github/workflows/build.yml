@@ -24,6 +24,8 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+      - name: Generate Android runner scaffold
+        run: flutter create --platforms=android --project-name core_eq .
       - name: Resolve dependencies
         run: flutter pub get
       - name: Run tests

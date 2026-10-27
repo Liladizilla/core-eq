@@ -36,6 +36,7 @@ CORE_EQ_API core_eq_status core_eq_configure_band(core_eq_handle* handle, uint32
                                                   float frequency_hz, float q,
                                                   float gain_db, float sample_rate_hz);
 CORE_EQ_API core_eq_status core_eq_reset(core_eq_handle* handle);
+CORE_EQ_API core_eq_status core_eq_get_peak_level(const core_eq_handle* handle, float* peak_level);
 CORE_EQ_API core_eq_status core_eq_process(core_eq_handle* handle, float* interleaved,
                                            size_t frames, size_t channels);
 

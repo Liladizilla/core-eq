@@ -10,7 +10,7 @@ float db_to_gain(float db) noexcept { return std::pow(10.0f, db / 20.0f); }
 
 BiquadCoefficients design_peaking(float f, float q, float gain_db, float sr) noexcept {
   BiquadCoefficients c{};
-  if (!(sr > 0.0f) || !(q > 0.0f) || !std::isfinite(f) || !std::isfinite(q) || !std::isfinite(gain_db)) return c;
+  if (!(sr > 0.0f) || !std::isfinite(sr) || !(q > 0.0f) || !std::isfinite(f) || !std::isfinite(q) || !std::isfinite(gain_db)) return c;
   f = std::clamp(f, 1.0f, sr * 0.49f);
   const float A = std::pow(10.0f, gain_db / 40.0f);
   const float w = 2.0f * kPi * f / sr;
@@ -31,37 +31,75 @@ float Biquad::process(float x) noexcept {
 }
 
 bool ParametricEq10::enqueue(const ParameterEvent& event) noexcept {
-  if (event.type == ParameterType::kBandCoefficients && event.band >= kBands) return false;
-  return events_.try_push(event);
+  ParameterEvent prepared = event;
+  switch (prepared.type) {
+    case ParameterType::kInputGainDb:
+      if (!std::isfinite(prepared.value)) return false;
+      prepared.value = db_to_gain(std::clamp(prepared.value, -24.0f, 24.0f));
+      break;
+    case ParameterType::kOutputGainDb:
+      if (!std::isfinite(prepared.value)) return false;
+      prepared.value = db_to_gain(std::clamp(prepared.value, -24.0f, 12.0f));
+      break;
+    case ParameterType::kBandCoefficients: {
+      if (prepared.band >= kBands) return false;
+      const auto& c = prepared.coefficients;
+      if (!std::isfinite(c.a0) || std::abs(c.a0) < 1.0e-12f ||
+          !std::isfinite(c.a1) || !std::isfinite(c.a2) ||
+          !std::isfinite(c.b0) || !std::isfinite(c.b1) || !std::isfinite(c.b2)) return false;
+      break;
+    }
+    case ParameterType::kBypass:
+    case ParameterType::kReset:
+      break;
+  }
+  return events_.try_push(prepared);
 }
 void ParametricEq10::consume_events() noexcept {
   ParameterEvent event;
   while (events_.try_pop(event)) {
     switch (event.type) {
       case ParameterType::kInputGainDb:
-        target_input_gain_ = db_to_gain(std::clamp(event.value, -24.0f, 24.0f)); break;
+        target_input_gain_ = event.value; break;
       case ParameterType::kOutputGainDb:
-        target_output_gain_ = db_to_gain(std::clamp(event.value, -24.0f, 12.0f)); break;
+        target_output_gain_ = event.value; break;
       case ParameterType::kBypass:
         bypassed_ = event.value >= 0.5f; break;
       case ParameterType::kBandCoefficients:
         left_[event.band].set_coefficients(event.coefficients);
         right_[event.band].set_coefficients(event.coefficients); break;
+      case ParameterType::kReset:
+        for (auto& filter : left_) filter.reset();
+        for (auto& filter : right_) filter.reset();
+        input_gain_ = target_input_gain_;
+        output_gain_ = target_output_gain_;
+        break;
     }
   }
 }
 void ParametricEq10::configure_band(std::size_t band, float f, float q, float db, float sr) noexcept {
   if (band >= kBands) return;
-  const auto c = design_peaking(f, q, db, sr);
-  left_[band].set_coefficients(c); right_[band].set_coefficients(c);
+  ParameterEvent event;
+  event.type = ParameterType::kBandCoefficients;
+  event.band = static_cast<std::uint8_t>(band);
+  event.coefficients = design_peaking(f, q, db, sr);
+  (void)enqueue(event);
 }
-void ParametricEq10::set_input_gain_db(float db) noexcept { target_input_gain_ = db_to_gain(std::clamp(db, -24.0f, 24.0f)); }
-void ParametricEq10::set_output_gain_db(float db) noexcept { target_output_gain_ = db_to_gain(std::clamp(db, -24.0f, 12.0f)); }
-void ParametricEq10::set_bypassed(bool b) noexcept { bypassed_ = b; }
+void ParametricEq10::set_input_gain_db(float db) noexcept {
+  ParameterEvent event; event.type = ParameterType::kInputGainDb; event.value = db;
+  (void)enqueue(event);
+}
+void ParametricEq10::set_output_gain_db(float db) noexcept {
+  ParameterEvent event; event.type = ParameterType::kOutputGainDb; event.value = db;
+  (void)enqueue(event);
+}
+void ParametricEq10::set_bypassed(bool b) noexcept {
+  ParameterEvent event; event.type = ParameterType::kBypass; event.value = b ? 1.0f : 0.0f;
+  (void)enqueue(event);
+}
 void ParametricEq10::reset() noexcept {
-  for (auto& f : left_) f.reset();
-  for (auto& f : right_) f.reset();
-  input_gain_ = target_input_gain_; output_gain_ = target_output_gain_;
+  ParameterEvent event; event.type = ParameterType::kReset;
+  (void)enqueue(event);
 }
 void ParametricEq10::process(float* data, std::size_t frames, std::size_t channels) noexcept {
   if (!data || channels == 0 || channels > 2) return;

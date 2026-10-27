@@ -259,24 +259,96 @@ class _CoreDeckScreenState extends State<CoreDeckScreen> {
   ]));
 
   void showPresets() {
-    const choices = ['NEUTRAL REFERENCE', 'HARMAN TARGET', 'PODCAST CLARITY', 'CAR CABIN', 'LATE NIGHT', 'BASSHEAD SAFE'];
-    showModalBottomSheet<void>(context: context, backgroundColor: panel, shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero, side: BorderSide(color: line)), builder: (ctx) => SafeArea(child: Padding(padding: const EdgeInsets.all(18), child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Text('RECALL PRESET', style: TextStyle(color: ink, fontWeight: FontWeight.w800, letterSpacing: 2)),
-      const SizedBox(height: 10),
-      for (final p in choices) ListTile(dense: true, contentPadding: EdgeInsets.zero, title: Text(p, style: TextStyle(color: p == preset ? cyan : ink, fontSize: 11, letterSpacing: .8)), trailing: p == preset ? const Icon(Icons.check, color: cyan, size: 16) : null, onTap: () {
-        setState(() {
-          preset = p;
-          for (int i=0;i<gains.length;i++) { gains[i]=0; }
-          if (p == 'HARMAN TARGET') { gains[1]=2; gains[2]=1.5; gains[7]=-1; }
-          if (p == 'PODCAST CLARITY') { gains[1]=-1; gains[4]=2.5; gains[6]=1.5; }
-          if (p == 'CAR CABIN') { gains[0]=2; gains[1]=1.5; gains[7]=-1; }
-          if (p == 'LATE NIGHT') { gains[0]=-2; gains[8]=-1.5; }
-          if (p == 'BASSHEAD SAFE') { gains[0]=3; gains[1]=2; gains[9]=-1; }
-          macro = 0;
-        });
-        Navigator.pop(ctx);
-      }),
-    ]))));
+    const choices = [
+      'NEUTRAL REFERENCE',
+      'HARMAN TARGET',
+      'PODCAST CLARITY',
+      'CAR CABIN',
+      'LATE NIGHT',
+      'BASSHEAD SAFE',
+    ];
+
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: panel,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.zero,
+        side: BorderSide(color: line),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(18),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'RECALL PRESET',
+                  style: TextStyle(
+                    color: ink,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 2,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                for (final p in choices)
+                  ListTile(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(
+                      p,
+                      style: TextStyle(
+                        color: p == preset ? cyan : ink,
+                        fontSize: 11,
+                        letterSpacing: .8,
+                      ),
+                    ),
+                    trailing: p == preset
+                        ? const Icon(Icons.check, color: cyan, size: 16)
+                        : null,
+                    onTap: () {
+                      setState(() {
+                        preset = p;
+                        for (int i = 0; i < gains.length; i++) {
+                          gains[i] = 0;
+                        }
+                        if (p == 'HARMAN TARGET') {
+                          gains[1] = 2;
+                          gains[2] = 1.5;
+                          gains[7] = -1;
+                        }
+                        if (p == 'PODCAST CLARITY') {
+                          gains[1] = -1;
+                          gains[4] = 2.5;
+                          gains[6] = 1.5;
+                        }
+                        if (p == 'CAR CABIN') {
+                          gains[0] = 2;
+                          gains[1] = 1.5;
+                          gains[7] = -1;
+                        }
+                        if (p == 'LATE NIGHT') {
+                          gains[0] = -2;
+                          gains[8] = -1.5;
+                        }
+                        if (p == 'BASSHEAD SAFE') {
+                          gains[0] = 3;
+                          gains[1] = 2;
+                          gains[9] = -1;
+                        }
+                        macro = 0;
+                      });
+                      Navigator.pop(ctx);
+                    },
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 

@@ -240,16 +240,19 @@ final class CoreEqEngineSession implements CoreEqEngineControls {
     return _native.setInputGainDb(_handle, db);
   }
 
+  @override
   CoreEqStatus setOutputGainDb(double db) {
     _ensureOpen();
     return _native.setOutputGainDb(_handle, db);
   }
 
+  @override
   CoreEqStatus setBypassed(bool bypassed) {
     _ensureOpen();
     return _native.setBypassed(_handle, bypassed);
   }
 
+  @override
   CoreEqStatus configureBand({
     required int band,
     required double frequencyHz,
@@ -268,6 +271,7 @@ final class CoreEqEngineSession implements CoreEqEngineControls {
     );
   }
 
+  @override
   CoreEqStatus reset() {
     _ensureOpen();
     return _native.reset(_handle);

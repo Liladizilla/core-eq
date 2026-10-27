@@ -1,3 +1,6 @@
+import 'dart:ffi';
+
+import 'package:ffi/ffi.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:core_eq/engine/core_eq_control_mapper.dart';
 import 'package:core_eq/native/core_eq_native.dart';
@@ -8,6 +11,8 @@ final class _FakeEngine implements CoreEqEngineControls {
   CoreEqStatus outputStatus = CoreEqStatus.ok;
   CoreEqStatus bypassStatus = CoreEqStatus.ok;
   CoreEqStatus resetStatus = CoreEqStatus.ok;
+  CoreEqStatus peakStatus = CoreEqStatus.ok;
+  double peakLevel = 0.0;
 
   @override
   CoreEqStatus configureBand({
@@ -23,6 +28,12 @@ final class _FakeEngine implements CoreEqEngineControls {
 
   @override
   CoreEqStatus setOutputGainDb(double db) => outputStatus;
+
+  @override
+  CoreEqStatus getPeakLevel(Pointer<Float> output) {
+    if (peakStatus == CoreEqStatus.ok) output.value = peakLevel;
+    return peakStatus;
+  }
 
   @override
   CoreEqStatus setBypassed(bool bypassed) => bypassStatus;
@@ -54,6 +65,31 @@ void main() {
 
     test('Flat preset does not alter any band gain', () {
       expect(CoreEqControlMapper.presetGainsDb['Flat'], everyElement(0));
+    });
+  });
+
+  group('CoreEq peak read result', () {
+    test('returns linear peak value on success', () {
+      final output = calloc<Float>();
+      try {
+        output.value = 0.75;
+        expect(output.value, closeTo(0.75, 0.0001));
+      } finally {
+        calloc.free(output);
+      }
+    });
+
+    test('fake engine exposes peak status and value', () {
+      final engine = _FakeEngine()..peakLevel = 0.42;
+      final output = calloc<Float>();
+      try {
+        expect(engine.getPeakLevel(output), CoreEqStatus.ok);
+        expect(output.value, closeTo(0.42, 0.0001));
+        engine.peakStatus = CoreEqStatus.unknown;
+        expect(engine.getPeakLevel(output), CoreEqStatus.unknown);
+      } finally {
+        calloc.free(output);
+      }
     });
   });
 

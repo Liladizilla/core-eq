@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import '../engine/core_eq_control_mapper.dart';
 
 const _bg = Color(0xFF090B0E);
 const _surface = Color(0xFF12161B);
@@ -161,14 +162,9 @@ class _CoreVisualizerScreenState extends State<CoreVisualizerScreen>
           borderRadius: BorderRadius.circular(18),
           onTap: () => setState(() {
             _preset = i;
+            final curve = CoreEqControlMapper.presetGainsDb[_presets[i]]!;
             for (var j = 0; j < _bands.length; j++) {
-              _bands[j] = switch (i) {
-                1 => (j < 3 ? 4.0 - j : 0.0),
-                2 => (j >= 4 && j <= 6 ? 2.5 : 0.0),
-                3 => (j < 2 || j > 7 ? 2.0 : (j > 3 && j < 7 ? -1.0 : 0.0)),
-                4 => (j >= 3 && j <= 6 ? 2.0 : 0.0),
-                _ => 0.0,
-              };
+              _bands[j] = curve[j];
             }
             _bass = i == 1 ? 6 : 0;
             _bassBoost = i == 1;

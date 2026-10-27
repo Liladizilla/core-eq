@@ -14,12 +14,12 @@ int main() {
   for (float coefficient : {low_rate.b0, low_rate.b1, low_rate.b2,
                             low_rate.a0, low_rate.a1, low_rate.a2}) {
     if (!std::isfinite(coefficient)) {
-      std::cerr << "Low-sample-rate coefficient design failed\\n";
+      std::cerr << "Low-sample-rate coefficient design failed\n";
       return EXIT_FAILURE;
     }
   }
   if (std::abs(low_rate.a0) < 1.0e-12f) {
-    std::cerr << "Low-sample-rate denominator is invalid\\n";
+    std::cerr << "Low-sample-rate denominator is invalid\n";
     return EXIT_FAILURE;
   }
   core_eq::Biquad filter;

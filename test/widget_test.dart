@@ -14,7 +14,9 @@ void main() {
   testWidgets('spectrum mode switches the visualizer label', (tester) async {
     await tester.pumpWidget(const CoreEqApp());
     await tester.ensureVisible(find.text('SPECTRUM'));
-    await tester.pumpAndSettle();
+    // The visualizer intentionally animates continuously, so pumpAndSettle
+    // can never settle. Advance one frame after scrolling instead.
+    await tester.pump(const Duration(milliseconds: 50));
     await tester.tap(find.text('SPECTRUM'));
     await tester.pump(const Duration(milliseconds: 50));
     expect(find.text('SPECTRUM / FFT'), findsOneWidget);

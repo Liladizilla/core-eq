@@ -4,14 +4,15 @@ import 'dart:ffi';
 enum CoreEqStatus {
   ok(0),
   invalidArgument(1),
-  queueFull(2);
+  queueFull(2),
+  unknown(-1);
 
   const CoreEqStatus(this.code);
   final int code;
 
   static CoreEqStatus fromCode(int code) => CoreEqStatus.values.firstWhere(
         (status) => status.code == code,
-        orElse: () => CoreEqStatus.invalidArgument,
+        orElse: () => CoreEqStatus.unknown,
       );
 }
 

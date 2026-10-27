@@ -68,6 +68,7 @@ class ParametricEq10 {
   void set_bypassed(bool bypassed) noexcept;
   void reset() noexcept;
   void process(float* interleaved, std::size_t frames, std::size_t channels) noexcept;
+  float peak_level() const noexcept { return peak_level_.load(std::memory_order_relaxed); }
  private:
   void consume_events() noexcept;
   std::array<Biquad, kBands> left_{};
@@ -77,6 +78,7 @@ class ParametricEq10 {
   float output_gain_{1.0f}, target_output_gain_{1.0f};
   float smoothing_coefficient_{0.002f};
   bool bypassed_{false};
+  std::atomic<float> peak_level_{0.0f};
 };
 
 }  // namespace core_eq

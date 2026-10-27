@@ -77,6 +77,12 @@ core_eq_status core_eq_reset(core_eq_handle* handle) {
   return enqueue_event(handle, event);
 }
 
+core_eq_status core_eq_get_peak_level(const core_eq_handle* handle, float* peak_level) {
+  if (handle == nullptr || peak_level == nullptr) return CORE_EQ_STATUS_INVALID_ARGUMENT;
+  *peak_level = handle->processor.peak_level();
+  return CORE_EQ_STATUS_OK;
+}
+
 core_eq_status core_eq_process(core_eq_handle* handle, float* interleaved,
                                size_t frames, size_t channels) {
   if (handle == nullptr || (frames > 0 && interleaved == nullptr) ||

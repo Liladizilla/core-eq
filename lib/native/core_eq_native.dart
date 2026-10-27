@@ -38,6 +38,12 @@ typedef _ConfigureBandDart = int Function(
 );
 typedef _ResetNative = Int32 Function(Pointer<CoreEqHandle>);
 typedef _ResetDart = int Function(Pointer<CoreEqHandle>);
+typedef _GetPeakNative = Int32 Function(
+  Pointer<CoreEqHandle>, Pointer<Float>,
+);
+typedef _GetPeakDart = int Function(
+  Pointer<CoreEqHandle>, Pointer<Float>,
+);
 typedef _ProcessNative = Int32 Function(
   Pointer<CoreEqHandle>, Pointer<Float>, IntPtr, IntPtr,
 );
@@ -118,6 +124,9 @@ final class CoreEqNative {
         _reset = library.lookupFunction<_ResetNative, _ResetDart>(
           'core_eq_reset',
         ),
+        _getPeakLevel = library.lookupFunction<_GetPeakNative, _GetPeakDart>(
+          'core_eq_get_peak_level',
+        ),
         _process = library.lookupFunction<_ProcessNative, _ProcessDart>(
           'core_eq_process',
         );
@@ -133,6 +142,7 @@ final class CoreEqNative {
   final _SetBypassDart _setBypassed;
   final _ConfigureBandDart _configureBand;
   final _ResetDart _reset;
+  final _GetPeakDart _getPeakLevel;
   final _ProcessDart _process;
 
   /// Creates an engine handle. A null pointer indicates allocation failure.
@@ -164,6 +174,17 @@ final class CoreEqNative {
 
   CoreEqStatus reset(Pointer<CoreEqHandle> handle) =>
       CoreEqStatus.fromCode(_reset(handle));
+
+  /// Reads the latest processed-block peak into caller-owned native memory.
+  ///
+  /// [peakLevel] must point to writable native memory for one [Float]. The
+  /// value is a linear amplitude from 0.0 to 1.0, not decibels. The caller
+  /// owns allocation and release of that memory.
+  CoreEqStatus getPeakLevel(
+    Pointer<CoreEqHandle> handle,
+    Pointer<Float> peakLevel,
+  ) =>
+      CoreEqStatus.fromCode(_getPeakLevel(handle, peakLevel));
 
   /// Processes interleaved float PCM in caller-owned native memory.
   CoreEqStatus process(
@@ -275,6 +296,17 @@ final class CoreEqEngineSession implements CoreEqEngineControls {
   CoreEqStatus reset() {
     _ensureOpen();
     return _native.reset(_handle);
+  }
+
+  /// Reads the latest peak value into caller-owned native memory.
+  ///
+  /// [peakLevel] must point to writable native memory for one [Float]. The
+  /// returned value is linear amplitude (0.0 to 1.0), not decibels. This
+  /// reports the latest processed block only; it does not create an audio
+  /// stream or make the visualizer live.
+  CoreEqStatus getPeakLevel(Pointer<Float> peakLevel) {
+    _ensureOpen();
+    return _native.getPeakLevel(_handle, peakLevel);
   }
 
   /// Processes caller-owned interleaved PCM in native memory.

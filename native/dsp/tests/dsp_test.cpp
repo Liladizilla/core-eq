@@ -9,17 +9,49 @@ int main() {
   core_eq::Biquad filter;
   filter.set_peaking(1000.0f, 1.0f, 9.0f, sr);
   std::vector<float> signal(48000);
-  for (std::size_t i = 0; i < signal.size(); ++i) signal[i] = 0.2f * std::sin(2.0f * 3.14159265358979323846f * 1000.0f * i / sr);
+  for (std::size_t i = 0; i < signal.size(); ++i)
+    signal[i] = 0.2f * std::sin(2.0f * 3.14159265358979323846f * 1000.0f * i / sr);
   double in = 0.0, out = 0.0;
   for (float x : signal) in += x * x;
   for (float& x : signal) x = filter.process(x);
   for (float x : signal) out += x * x;
-  if (!(std::isfinite(out) && out > in)) { std::cerr << "EQ gain test failed\n"; return EXIT_FAILURE; }
+  if (!(std::isfinite(out) && out > in)) {
+    std::cerr << "EQ gain test failed\n"; return EXIT_FAILURE;
+  }
+
+  core_eq::SpscQueue<int, 4> queue;
+  int value = 0;
+  if (!queue.try_push(11) || !queue.try_push(22) || !queue.try_push(33) || queue.try_push(44)) {
+    std::cerr << "SPSC queue capacity test failed\n"; return EXIT_FAILURE;
+  }
+  if (!queue.try_pop(value) || value != 11 || !queue.try_pop(value) || value != 22 ||
+      !queue.try_pop(value) || value != 33 || queue.try_pop(value)) {
+    std::cerr << "SPSC queue ordering test failed\n"; return EXIT_FAILURE;
+  }
+
   core_eq::ParametricEq10 eq;
-  eq.configure_band(0, 1000.0f, 1.0f, 6.0f, sr);
+  core_eq::ParameterEvent band;
+  band.type = core_eq::ParameterType::kBandCoefficients;
+  band.band = 0;
+  band.coefficients = core_eq::design_peaking(1000.0f, 1.0f, 6.0f, sr);
+  if (!eq.enqueue(band)) return EXIT_FAILURE;
+  core_eq::ParameterEvent gain;
+  gain.type = core_eq::ParameterType::kOutputGainDb;
+  gain.value = 6.0f;
+  if (!eq.enqueue(gain)) return EXIT_FAILURE;
   std::vector<float> stereo(512 * 2, 0.1f);
   eq.process(stereo.data(), 512, 2);
   for (float x : stereo) if (!std::isfinite(x) || std::abs(x) > 1.0f) return EXIT_FAILURE;
+
+  core_eq::ParametricEq10 bypass;
+  core_eq::ParameterEvent mute;
+  mute.type = core_eq::ParameterType::kBypass;
+  mute.value = 1.0f;
+  if (!bypass.enqueue(mute)) return EXIT_FAILURE;
+  std::vector<float> unchanged(32, 0.25f);
+  bypass.process(unchanged.data(), unchanged.size(), 1);
+  for (float x : unchanged) if (x != 0.25f) return EXIT_FAILURE;
+
   std::cout << "CORE-EQ DSP smoke tests passed\n";
   return EXIT_SUCCESS;
 }

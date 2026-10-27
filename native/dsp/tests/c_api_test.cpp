@@ -44,6 +44,18 @@ int main() {
     std::cerr << "Full parameter queue was not reported\n";
     return EXIT_FAILURE;
   }
+
+  // A render callback consumes queued events. Once drained, setters must be
+  // able to enqueue again instead of remaining permanently stuck at full.
+  std::vector<float> drain_buffer(2, 0.0f);
+  if (core_eq_process(queue_handle, drain_buffer.data(), 1, 2) != CORE_EQ_STATUS_OK) {
+    std::cerr << "Processing failed while draining the parameter queue\n";
+    return EXIT_FAILURE;
+  }
+  if (core_eq_set_input_gain_db(queue_handle, 0.0f) != CORE_EQ_STATUS_OK) {
+    std::cerr << "Parameter queue did not recover after processing\n";
+    return EXIT_FAILURE;
+  }
   core_eq_destroy(queue_handle);
 
   std::cout << "CORE-EQ C ABI tests passed\n";

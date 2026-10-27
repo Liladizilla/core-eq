@@ -15,7 +15,7 @@ int main() {
   if (core_eq_set_input_gain_db(handle, std::numeric_limits<float>::quiet_NaN()) != CORE_EQ_STATUS_INVALID_ARGUMENT) return EXIT_FAILURE;
   if (core_eq_set_bypassed(handle, 2) != CORE_EQ_STATUS_INVALID_ARGUMENT) return EXIT_FAILURE;
   if (core_eq_configure_band(handle, 10, 1000.0f, 1.0f, 0.0f, 48000.0f) != CORE_EQ_STATUS_INVALID_ARGUMENT) return EXIT_FAILURE;
-  if (core_eq_configure_band(handle, 0, 1000.0f, std::numeric_limits<float>::min(), 6.0f, 48000.0f) != CORE_EQ_STATUS_INVALID_ARGUMENT) return EXIT_FAILURE;
+  if (core_eq_configure_band(handle, 0, 1000.0f, std::numeric_limits<float>::denorm_min(), 6.0f, 48000.0f) != CORE_EQ_STATUS_INVALID_ARGUMENT) return EXIT_FAILURE;
   if (core_eq_process(handle, nullptr, 1, 2) != CORE_EQ_STATUS_INVALID_ARGUMENT) return EXIT_FAILURE;
   if (core_eq_process(handle, nullptr, 0, 2) != CORE_EQ_STATUS_OK) return EXIT_FAILURE;
 

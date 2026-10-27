@@ -150,7 +150,7 @@ class _CoreVisualizerScreenState extends State<CoreVisualizerScreen>
           const Text('INTENSITY', style: TextStyle(color: muted, fontSize: 8, letterSpacing: 1)),
           Expanded(child: SliderTheme(data: SliderTheme.of(context).copyWith(
             activeTrackColor: cyan, inactiveTrackColor: edge, thumbColor: ink,
-            overlayColor: cyan.withOpacity(.08), trackHeight: 2,
+            overlayColor: cyan.withValues(alpha: .08), trackHeight: 2,
             thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 5)),
             child: Slider(value: intensity, min: 0, max: 1, onChanged: (v) => setState(() => intensity = v)))),
           SizedBox(width: 32, child: Text((intensity * 100).round().toString() + '%', textAlign: TextAlign.right,
@@ -246,22 +246,22 @@ class OrbitalPainter extends CustomPainter {
     final r = math.min(size.width * .35, size.height * .36);
     final grid = Paint()..style = PaintingStyle.stroke..strokeWidth = .7..color = edge;
     for (var i = 0; i < 4; i++) {
-      canvas.drawCircle(c, r * (1.14 + i * .14), grid..color = edge.withOpacity(i == 0 ? .8 : .3));
+      canvas.drawCircle(c, r * (1.14 + i * .14), grid..color = edge.withValues(alpha: i == 0 ? .8 : .3));
     }
     for (var i = 0; i < 72; i++) {
       final a = i * math.pi * 2 / 72;
       final inner = r * (1.18 + (i % 6 == 0 ? .08 : 0));
       final outer = r * (i % 6 == 0 ? 1.31 : 1.22);
       canvas.drawLine(c + Offset(math.cos(a) * inner, math.sin(a) * inner), c + Offset(math.cos(a) * outer, math.sin(a) * outer),
-        Paint()..color = muted.withOpacity(i % 6 == 0 ? .65 : .22)..strokeWidth = i % 6 == 0 ? 1.2 : .6);
+        Paint()..color = muted.withValues(alpha: i % 6 == 0 ? .65 : .22)..strokeWidth = i % 6 == 0 ? 1.2 : .6);
     }
     canvas.drawCircle(c, r, Paint()..color = const Color(0xFF0B1115));
-    canvas.drawCircle(c, r, Paint()..style = PaintingStyle.stroke..strokeWidth = 1.1..color = cyan.withOpacity(.55));
+    canvas.drawCircle(c, r, Paint()..style = PaintingStyle.stroke..strokeWidth = 1.1..color = cyan.withValues(alpha: .55));
     for (var lat = -5; lat <= 5; lat++) {
       final y = lat / 6.4;
       final w = r * math.sqrt(math.max(0, 1 - y * y));
       canvas.drawOval(Rect.fromCenter(center: c + Offset(0, y * r), width: w * 2, height: math.max(3, r * (.18 + (1 - y.abs()) * .1))),
-        grid..color = cyan.withOpacity(lat == 0 ? .4 : .17));
+        grid..color = cyan.withValues(alpha: lat == 0 ? .4 : .17));
     }
     for (var lon = 0; lon < 8; lon++) {
       final squeeze = math.cos(phase * .22 + lon * math.pi / 8);
@@ -271,7 +271,7 @@ class OrbitalPainter extends CustomPainter {
         final p = Offset(c.dx + math.sin(t) * r * squeeze, c.dy + math.cos(t) * r);
         if (j == 0) { path.moveTo(p.dx, p.dy); } else { path.lineTo(p.dx, p.dy); }
       }
-      canvas.drawPath(path, grid..color = cyan.withOpacity(.16));
+      canvas.drawPath(path, grid..color = cyan.withValues(alpha: .16));
     }
     // Deliberately labeled demo motion until live PCM data is connected.
     final count = spectrum ? 96 : 68;
@@ -285,14 +285,14 @@ class OrbitalPainter extends CustomPainter {
       final p1 = c + Offset(math.cos(a) * base, math.sin(a) * base * .76);
       final p2 = c + Offset(math.cos(a) * (base + h), math.sin(a) * (base + h) * .76);
       final accent = wave > .77 ? amber : cyan;
-      canvas.drawLine(p1, p2, Paint()..color = (front ? accent : muted).withOpacity(front ? .9 : .2)
+      canvas.drawLine(p1, p2, Paint()..color = (front ? accent : muted).withValues(alpha: front ? .9 : .2)
         ..strokeWidth = (spectrum ? 2.2 : 2.8)..strokeCap = StrokeCap.square);
-      if (front && i % 4 == 0) canvas.drawCircle(p2, 1.5, Paint()..color = accent.withOpacity(.9));
+      if (front && i % 4 == 0) canvas.drawCircle(p2, 1.5, Paint()..color = accent.withValues(alpha: .9));
     }
     canvas.drawCircle(c, r * .09, Paint()..color = const Color(0xFF13272B));
-    canvas.drawCircle(c, r * .09, Paint()..style = PaintingStyle.stroke..strokeWidth = 1..color = cyan.withOpacity(.6));
-    canvas.drawLine(c - const Offset(7, 0), c + const Offset(7, 0), Paint()..color = ink.withOpacity(.6)..strokeWidth = .8);
-    canvas.drawLine(c - const Offset(0, 7), c + const Offset(0, 7), Paint()..color = ink.withOpacity(.6)..strokeWidth = .8);
+    canvas.drawCircle(c, r * .09, Paint()..style = PaintingStyle.stroke..strokeWidth = 1..color = cyan.withValues(alpha: .6));
+    canvas.drawLine(c - const Offset(7, 0), c + const Offset(7, 0), Paint()..color = ink.withValues(alpha: .6)..strokeWidth = .8);
+    canvas.drawLine(c - const Offset(0, 7), c + const Offset(0, 7), Paint()..color = ink.withValues(alpha: .6)..strokeWidth = .8);
     const style = TextStyle(color: muted, fontSize: 7, letterSpacing: 1);
     label(canvas, 'LOW', Offset(c.dx - r * 1.35, c.dy + r * .85), style);
     label(canvas, 'MID', Offset(c.dx - 9, c.dy - r * 1.35), style);

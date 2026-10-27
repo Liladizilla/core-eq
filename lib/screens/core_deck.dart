@@ -366,7 +366,7 @@ class EqCurvePainter extends CustomPainter {
       final y = r.top + r.height*i/4;
       canvas.drawLine(Offset(r.left,y), Offset(r.right,y), grid);
       final db = 12-i*6;
-      text.text = TextSpan(text: `${db>0?'+':''}$db`, style: const TextStyle(color: muted, fontSize: 8));
+      text.text = TextSpan(text: '${db > 0 ? '+' : ''}$db', style: const TextStyle(color: muted, fontSize: 8));
       text.layout(); text.paint(canvas, Offset(0,y-5));
     }
     const labels = ['20','50','100','500','1k','5k','10k','20k'];

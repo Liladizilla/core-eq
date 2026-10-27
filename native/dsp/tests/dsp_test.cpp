@@ -102,6 +102,30 @@ int main() {
     return EXIT_FAILURE;
   }
 
+  // Reset must clear delay-line history without discarding the EQ coefficients.
+  core_eq::ParametricEq10 reset_after_signal;
+  reset_after_signal.configure_band(0, 1000.0f, 1.0f, 9.0f, sr);
+  std::vector<float> warmup(256, 0.0f);
+  warmup[0] = 0.8f;
+  reset_after_signal.process(warmup.data(), warmup.size(), 1);
+  reset_after_signal.reset();
+  std::vector<float> after_reset(64, 0.0f);
+  after_reset[0] = 0.25f;
+  reset_after_signal.process(after_reset.data(), after_reset.size(), 1);
+
+  core_eq::ParametricEq10 fresh;
+  fresh.configure_band(0, 1000.0f, 1.0f, 9.0f, sr);
+  std::vector<float> fresh_signal(64, 0.0f);
+  fresh_signal[0] = 0.25f;
+  fresh.process(fresh_signal.data(), fresh_signal.size(), 1);
+  for (std::size_t i = 0; i < after_reset.size(); ++i) {
+    if (!std::isfinite(after_reset[i]) ||
+        std::abs(after_reset[i] - fresh_signal[i]) > 1.0e-6f) {
+      std::cerr << "Reset did not restore clean filter history\n";
+      return EXIT_FAILURE;
+    }
+  }
+
   core_eq::ParametricEq10 bypass;
   bypass.set_bypassed(true);
   std::vector<float> setter_bypass(32, 0.25f);

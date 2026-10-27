@@ -21,7 +21,6 @@ class _CoreVisualizerScreenState extends State<CoreVisualizerScreen>
   late final AnimationController _motion = AnimationController(
     vsync: this, duration: const Duration(seconds: 14),
   )..repeat();
-  int _tab = 0;
   int _preset = 0;
   bool _bassBoost = false;
   bool _limiter = true;

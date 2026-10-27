@@ -131,15 +131,15 @@ final class CoreEqNative {
 
 /// Owns one native engine handle and enforces its lifecycle.
 ///
-/// Library discovery/loading remains the platform host's responsibility. This
-/// class intentionally does not claim that a device audio stream is connected.
+/// The raw handle and low-level bindings stay private so callers cannot bypass
+/// the session's disposed-state checks.
 final class CoreEqEngineSession {
-  CoreEqEngineSession._(this.native, this.handle);
+  CoreEqEngineSession._(this._native, this._handle);
 
   static const supportedAbiVersion = 1;
 
-  final CoreEqNative native;
-  final Pointer<CoreEqHandle> handle;
+  final CoreEqNative _native;
+  final Pointer<CoreEqHandle> _handle;
   bool _disposed = false;
 
   /// Binds the provided library, validates its ABI, and creates an engine.
@@ -172,17 +172,17 @@ final class CoreEqEngineSession {
 
   CoreEqStatus setInputGainDb(double db) {
     _ensureOpen();
-    return native.setInputGainDb(handle, db);
+    return _native.setInputGainDb(_handle, db);
   }
 
   CoreEqStatus setOutputGainDb(double db) {
     _ensureOpen();
-    return native.setOutputGainDb(handle, db);
+    return _native.setOutputGainDb(_handle, db);
   }
 
   CoreEqStatus setBypassed(bool bypassed) {
     _ensureOpen();
-    return native.setBypassed(handle, bypassed);
+    return _native.setBypassed(_handle, bypassed);
   }
 
   CoreEqStatus configureBand({
@@ -193,8 +193,8 @@ final class CoreEqEngineSession {
     required double sampleRateHz,
   }) {
     _ensureOpen();
-    return native.configureBand(
-      handle,
+    return _native.configureBand(
+      _handle,
       band: band,
       frequencyHz: frequencyHz,
       q: q,
@@ -205,7 +205,7 @@ final class CoreEqEngineSession {
 
   CoreEqStatus reset() {
     _ensureOpen();
-    return native.reset(handle);
+    return _native.reset(_handle);
   }
 
   /// Processes caller-owned interleaved PCM in native memory.
@@ -219,8 +219,8 @@ final class CoreEqEngineSession {
     required int channels,
   }) {
     _ensureOpen();
-    return native.process(
-      handle,
+    return _native.process(
+      _handle,
       samples: samples,
       frames: frames,
       channels: channels,
@@ -233,7 +233,7 @@ final class CoreEqEngineSession {
   /// disposal is not synchronized with an in-flight native process call.
   void dispose() {
     if (_disposed) return;
-    native.destroy(handle);
+    _native.destroy(_handle);
     _disposed = true;
   }
 }

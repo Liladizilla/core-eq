@@ -7,6 +7,21 @@
 
 int main() {
   constexpr float sr = 48000.0f;
+
+  // Very low positive rates make the old fixed 1 Hz lower clamp exceed the
+  // 0.49 * sample-rate upper clamp, violating std::clamp's precondition.
+  const auto low_rate = core_eq::design_peaking(1000.0f, 1.0f, 6.0f, 2.0f);
+  for (float coefficient : {low_rate.b0, low_rate.b1, low_rate.b2,
+                            low_rate.a0, low_rate.a1, low_rate.a2}) {
+    if (!std::isfinite(coefficient)) {
+      std::cerr << "Low-sample-rate coefficient design failed\\n";
+      return EXIT_FAILURE;
+    }
+  }
+  if (std::abs(low_rate.a0) < 1.0e-12f) {
+    std::cerr << "Low-sample-rate denominator is invalid\\n";
+    return EXIT_FAILURE;
+  }
   core_eq::Biquad filter;
   filter.set_peaking(1000.0f, 1.0f, 9.0f, sr);
   std::vector<float> signal(48000);

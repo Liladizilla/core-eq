@@ -166,7 +166,7 @@ class _CoreDeckScreenState extends State<CoreDeckScreen> {
     if (vertical) return Padding(padding: const EdgeInsets.symmetric(vertical: 20), child: Column(children: [
       const Text('IN', style: TextStyle(color: muted, fontSize: 8)),
       const SizedBox(height: 8),
-      Expanded(child: Column(mainAxisAlignment: MainAxisAlignment.end, children: values.map((v) => Container(margin: const EdgeInsets.only(bottom: 3), width: 17, height: 8, color: bar(v))).toList())),
+      Expanded(child: Column(mainAxisAlignment: MainAxisAlignment.end, children: values.map((v) => Container(margin: const EdgeInsets.only(bottom: 3), width: 17, height: 8, color: bar(v)))).toList())),
       const SizedBox(height: 12),
       const Text('OUT', style: TextStyle(color: muted, fontSize: 8)),
       const SizedBox(height: 8),
@@ -188,7 +188,7 @@ class _CoreDeckScreenState extends State<CoreDeckScreen> {
       Icon(bypass ? Icons.power_settings_new : Icons.graphic_eq, color: bypass ? amber : cyan, size: 17),
       const SizedBox(width: 7),
       Text(bypass ? 'BYPASSED' : 'BYPASS', style: TextStyle(color: bypass ? amber : cyan, fontSize: 9, fontWeight: FontWeight.w800, letterSpacing: 1.2)),
-    ]))),
+    ])))),
     const SizedBox(width: 7),
     InkWell(onTap: () => setState(() => slot = 1 - slot), child: Container(width: 49, height: 47, decoration: BoxDecoration(border: Border.all(color: cyan.withValues(alpha: .6)), color: cyan.withValues(alpha: .06)), child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
       Text(slot == 0 ? 'A' : 'B', style: const TextStyle(color: cyan, fontSize: 16, fontWeight: FontWeight.w800)),

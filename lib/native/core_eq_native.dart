@@ -46,7 +46,7 @@ typedef _ProcessDart = int Function(
 /// serialize parameter setters because the native queue is single-producer.
 final class CoreEqNative {
   CoreEqNative(DynamicLibrary library)
-      : abiVersion = library.lookupFunction<_AbiVersionNative, _AbiVersionDart>(
+      : _abiVersion = library.lookupFunction<_AbiVersionNative, _AbiVersionDart>(
           'core_eq_abi_version',
         ),
         _create = library.lookupFunction<_CreateNative, _CreateDart>(
@@ -75,7 +75,10 @@ final class CoreEqNative {
           'core_eq_process',
         );
 
-  final _AbiVersionDart abiVersion;
+  final _AbiVersionDart _abiVersion;
+
+  /// Returns the native ABI major version.
+  int get abiVersion => _abiVersion();
   final _CreateDart _create;
   final _DestroyDart _destroy;
   final _SetGainDart _setInputGain;

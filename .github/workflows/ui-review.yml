@@ -1,7 +1,7 @@
 name: CORE-EQ Desktop UI Review
 on:
   push:
-    branches: [core-eq/ui-review-desktop-preview]
+    branches: [core-eq/ui-review-desktop-preview, core-eq/ui-preview-window-capture]
   pull_request:
     branches: [main]
 permissions:
@@ -17,7 +17,7 @@ jobs:
       - name: Install Linux desktop and screenshot dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev xvfb imagemagick
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev xvfb imagemagick xdotool
       - name: Generate Linux desktop runner
         run: flutter create --platforms=linux --project-name core_eq .
       - name: Resolve Flutter dependencies
@@ -32,11 +32,23 @@ jobs:
         run: |
           mkdir -p artifacts
           xvfb-run -a -s "-screen 0 1440x1000x24" bash -lc '
+            set -e
             build/linux/x64/release/bundle/core_eq &
             APP_PID=$!
             trap "kill $APP_PID 2>/dev/null || true" EXIT
-            sleep 8
-            import -window root artifacts/core-eq-desktop-preview.png
+            for attempt in $(seq 1 20); do
+              WINDOW_ID=$(xdotool search --onlyvisible --class core_eq 2>/dev/null | head -n 1 || true)
+              if [ -n "$WINDOW_ID" ]; then break; fi
+              sleep 1
+            done
+            if [ -z "$WINDOW_ID" ]; then
+              echo "CORE-EQ window did not appear" >&2
+              exit 1
+            fi
+            xdotool windowmove "$WINDOW_ID" 0 0
+            xdotool windowsize "$WINDOW_ID" 1400 900
+            sleep 3
+            import -window "$WINDOW_ID" artifacts/core-eq-desktop-preview.png
           '
       - name: Upload desktop preview and runnable bundle
         uses: actions/upload-artifact@v4

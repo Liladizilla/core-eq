@@ -1,5 +1,7 @@
 import 'dart:ffi';
 
+import 'package:flutter/foundation.dart';
+
 /// Status codes returned by the CORE-EQ C ABI.
 enum CoreEqStatus {
   ok(0),
@@ -46,6 +48,50 @@ typedef _ProcessDart = int Function(
 /// Typed Dart FFI bindings. The caller must load the platform library and
 /// serialize parameter setters because the native queue is single-producer.
 final class CoreEqNative {
+  static const int supportedAbiVersion = 1;
+
+  /// Resolves the shared library name used by supported Flutter targets.
+  static String libraryNameForPlatform(TargetPlatform platform) {
+    switch (platform) {
+      case TargetPlatform.android:
+      case TargetPlatform.linux:
+        return 'libcore_eq.so';
+      case TargetPlatform.windows:
+        return 'core_eq.dll';
+      case TargetPlatform.macOS:
+        return 'libcore_eq.dylib';
+      case TargetPlatform.iOS:
+        throw UnsupportedError(
+          'CORE-EQ uses an iOS player/AUv3 integration; DynamicLibrary.open '
+          'is not the iOS packaging path.',
+        );
+      case TargetPlatform.fuchsia:
+        throw UnsupportedError('CORE-EQ has no Fuchsia native build yet.');
+    }
+  }
+
+  /// Loads the packaged native library and rejects incompatible ABI versions.
+  factory CoreEqNative.openDefault() {
+    final libraryName = libraryNameForPlatform(defaultTargetPlatform);
+    final DynamicLibrary library;
+    try {
+      library = DynamicLibrary.open(libraryName);
+    } on ArgumentError catch (error) {
+      throw StateError(
+        'Unable to load CORE-EQ native library "$libraryName". '
+        'Build/package the native library for this platform first. Details: $error',
+      );
+    }
+    final native = CoreEqNative(library);
+    if (native.abiVersion != supportedAbiVersion) {
+      throw StateError(
+        'CORE-EQ ABI mismatch: Dart expects $supportedAbiVersion, '
+        'native library reports ${native.abiVersion}.',
+      );
+    }
+    return native;
+  }
+
   CoreEqNative(DynamicLibrary library)
       : _abiVersion = library.lookupFunction<_AbiVersionNative, _AbiVersionDart>(
           'core_eq_abi_version',

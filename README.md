@@ -28,7 +28,7 @@ iOS system-wide interception is not available to ordinary third-party apps. The 
 
 ## Development status
 
-The standalone repository contains the Flutter command deck, an animated orbital spectrum presentation, widget tests, a C++17 10-band parametric EQ foundation, a bounded single-producer/single-consumer parameter queue, smoothed input/output gain, and native DSP smoke tests. The visualizer animation, numeric meters, latency/CPU telemetry, preset controls, and bypass switch remain presentation-only; they are not connected to native processing or device audio. Android/iOS audio integration remains unimplemented and must be validated on real hardware.
+The standalone repository contains the Flutter command deck, an animated orbital spectrum presentation, widget tests, a C++17 10-band parametric EQ foundation, a bounded single-producer/single-consumer parameter queue, smoothed input/output gain, and native DSP smoke tests. The visualizer animation, numeric meters, latency/CPU telemetry, preset controls, and bypass switch remain presentation-only; they are not connected to native processing or device audio. Android native library packaging is being added for arm64-v8a, armeabi-v7a, and x86_64. The Dart FFI loader can resolve packaged library names and validate ABI version 1, but the UI is not yet wired to instantiate the engine. Android/iOS audio integration remains unimplemented and must be validated on real hardware. See [the architecture notes](docs/CORE_EQ_ARCHITECTURE.md) for the native build command and limits.
 
 ## Planned structure
 

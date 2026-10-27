@@ -24,9 +24,21 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+      - name: Generate Android runner scaffold
+        run: flutter create --platforms=android --project-name core_eq .
       - name: Resolve dependencies
         run: flutter pub get
       - name: Run tests
         run: flutter test
       - name: Analyze
         run: flutter analyze --no-pub
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: 'ndk;27.0.12077973'
+      - name: Build and package Android native library
+        run: bash scripts/build_android_native.sh
+      - name: Verify native libraries are packaged
+        run: |
+          test -f android/app/src/main/jniLibs/arm64-v8a/libcore_eq.so
+          test -f android/app/src/main/jniLibs/armeabi-v7a/libcore_eq.so
+          test -f android/app/src/main/jniLibs/x86_64/libcore_eq.so

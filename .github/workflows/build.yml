@@ -7,6 +7,16 @@ on:
 permissions:
   contents: read
 jobs:
+  native-dsp:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure C++ DSP
+        run: cmake -S native/dsp -B build-dsp -DCMAKE_BUILD_TYPE=Release
+      - name: Compile DSP and tests
+        run: cmake --build build-dsp --parallel
+      - name: Run DSP tests
+        run: ctest --test-dir build-dsp --output-on-failure
   flutter:
     runs-on: ubuntu-latest
     steps:

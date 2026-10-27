@@ -24,7 +24,7 @@ class Biquad {
   float x1_{0}, x2_{0}, y1_{0}, y2_{0};
 };
 
-enum class ParameterType : std::uint8_t { kInputGainDb, kOutputGainDb, kBypass, kBandCoefficients };
+enum class ParameterType : std::uint8_t { kInputGainDb, kOutputGainDb, kBypass, kBandCoefficients, kReset };
 struct ParameterEvent {
   ParameterType type{ParameterType::kInputGainDb};
   std::uint8_t band{0};

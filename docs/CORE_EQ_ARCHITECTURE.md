@@ -26,7 +26,7 @@ The first UI milestone is a presentation and interaction prototype. Its EQ curve
 
 ## Real-time safety contract
 
-The render callback performs no heap allocation, blocking locks, filesystem/network work, logging, or Flutter/Java/Swift calls. UI changes are delivered as bounded parameter events and smoothed in the audio thread. Graph reconfiguration occurs off-thread and swaps immutable graph snapshots at safe block boundaries.
+The render callback performs no heap allocation, blocking locks, filesystem/network work, logging, or Flutter/Java/Swift calls. UI changes are delivered as bounded parameter events and smoothed in the audio thread. Public control setters enqueue events instead of mutating filter/gain state directly. Gain conversion and coefficient design happen on the producer side; the render callback consumes prepared gain values. The queue is single-producer/single-consumer, so callers must serialize producers and treat a full queue as a rejected update. Graph reconfiguration occurs off-thread and swaps immutable graph snapshots at safe block boundaries.
 
 ## Platform constraints
 

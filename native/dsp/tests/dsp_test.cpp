@@ -2,6 +2,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <iostream>
+#include <limits>
 #include <vector>
 
 int main() {
@@ -30,6 +31,19 @@ int main() {
   }
 
   core_eq::ParametricEq10 eq;
+  core_eq::ParameterEvent invalid_band;
+  invalid_band.type = core_eq::ParameterType::kBandCoefficients;
+  invalid_band.band = 10;
+  if (eq.enqueue(invalid_band)) {
+    std::cerr << "Out-of-range EQ band was accepted\n"; return EXIT_FAILURE;
+  }
+  core_eq::ParameterEvent invalid_gain;
+  invalid_gain.type = core_eq::ParameterType::kOutputGainDb;
+  invalid_gain.value = std::numeric_limits<float>::quiet_NaN();
+  if (eq.enqueue(invalid_gain)) {
+    std::cerr << "Non-finite gain was accepted\n"; return EXIT_FAILURE;
+  }
+
   core_eq::ParameterEvent band;
   band.type = core_eq::ParameterType::kBandCoefficients;
   band.band = 0;
@@ -39,17 +53,25 @@ int main() {
   gain.type = core_eq::ParameterType::kOutputGainDb;
   gain.value = 6.0f;
   if (!eq.enqueue(gain)) return EXIT_FAILURE;
+  eq.set_input_gain_db(3.0f);
+  eq.configure_band(1, 250.0f, 0.8f, -3.0f, sr);
   std::vector<float> stereo(512 * 2, 0.1f);
   eq.process(stereo.data(), 512, 2);
   for (float x : stereo) if (!std::isfinite(x) || std::abs(x) > 1.0f) return EXIT_FAILURE;
 
   core_eq::ParametricEq10 bypass;
+  bypass.set_bypassed(true);
+  std::vector<float> setter_bypass(32, 0.25f);
+  bypass.process(setter_bypass.data(), setter_bypass.size(), 1);
+  for (float x : setter_bypass) if (x != 0.25f) return EXIT_FAILURE;
+
+  core_eq::ParametricEq10 event_bypass;
   core_eq::ParameterEvent mute;
   mute.type = core_eq::ParameterType::kBypass;
   mute.value = 1.0f;
-  if (!bypass.enqueue(mute)) return EXIT_FAILURE;
+  if (!event_bypass.enqueue(mute)) return EXIT_FAILURE;
   std::vector<float> unchanged(32, 0.25f);
-  bypass.process(unchanged.data(), unchanged.size(), 1);
+  event_bypass.process(unchanged.data(), unchanged.size(), 1);
   for (float x : unchanged) if (x != 0.25f) return EXIT_FAILURE;
 
   std::cout << "CORE-EQ DSP smoke tests passed\n";

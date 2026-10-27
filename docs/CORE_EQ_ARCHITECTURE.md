@@ -1,8 +1,14 @@
 # CORE-EQ Architecture Notes
 
-## Current milestone: Phase 2 / C ABI bridge
+## Current milestone: Phase 3 / Android native packaging
 
 CORE-EQ is an independent repository. ZillaEQ is not a dependency and will not receive CORE-EQ implementation changes.
+
+## Android native packaging
+
+Run `bash scripts/build_android_native.sh` after installing Flutter, Android SDK command-line tools, and an Android NDK. The script builds the shared C ABI library for `arm64-v8a`, `armeabi-v7a`, and `x86_64`, then places each `libcore_eq.so` in `android/app/src/main/jniLibs/<abi>/`. The CI workflow generates the Android runner first, builds the native libraries, verifies all three artifacts, and builds the APK.
+
+The Dart `CoreEqNative.openDefault()` factory resolves library names for supported Flutter targets and checks ABI version 1. This Android packaging step does not initialize the engine from the UI or provide audio-device routing. The parameter queue remains single-producer/single-consumer: serialize control calls and process audio from one render thread.
 
 ### Prototype boundary
 The Flutter screen is still a presentation prototype. Its EQ curve, meters, preset values, bypass state, latency labels, and DSP load labels are not connected to device audio. Keep UI PREVIEW, NOT MEASURED, and NOT CONNECTED indicators until those values are backed by native engine telemetry.

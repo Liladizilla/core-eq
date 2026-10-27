@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 
 const bg = Color(0xFF07090C);
@@ -124,7 +123,7 @@ class _CoreDeckScreenState extends State<CoreDeckScreen> {
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(names[selected], style: const TextStyle(color: ink, fontWeight: FontWeight.w800, letterSpacing: 1.5, fontSize: 12)),
           const SizedBox(height: 3),
-          Text('MODULE ' + (selected + 1).toString().padLeft(2, '0') + ' / ' + details[selected].toUpperCase(), style: const TextStyle(color: muted, fontSize: 8, letterSpacing: .7)),
+          Text('MODULE ${(selected + 1).toString().padLeft(2, '0')} / ${details[selected].toUpperCase()}', style: const TextStyle(color: muted, fontSize: 8, letterSpacing: .7)),
         ])),
         TextButton(onPressed: () => setState(() { for (int i=0;i<gains.length;i++) { gains[i]=0; } }), child: const Text('FLAT', style: TextStyle(color: muted, fontSize: 9, letterSpacing: 1))),
       ])),
@@ -132,9 +131,9 @@ class _CoreDeckScreenState extends State<CoreDeckScreen> {
       const Divider(height: 1, color: line),
       Padding(padding: const EdgeInsets.fromLTRB(12, 11, 12, 12), child: Column(children: [
         Row(children: [
-          readout('FREQUENCY', frequencyLabels[selected] + ' Hz'),
+          readout('FREQUENCY', '${frequencyLabels[selected]} Hz'),
           const SizedBox(width: 7),
-          readout('GAIN', gains[selected].toStringAsFixed(1) + ' dB'),
+          readout('GAIN', '${gains[selected].toStringAsFixed(1)} dB'),
           const SizedBox(width: 7),
           readout('Q', '1.00'),
         ]),
@@ -142,7 +141,7 @@ class _CoreDeckScreenState extends State<CoreDeckScreen> {
         Row(children: [
           const Text('MACRO', style: TextStyle(color: muted, fontSize: 9, letterSpacing: 1.2)),
           Expanded(child: SliderTheme(data: SliderTheme.of(context).copyWith(activeTrackColor: c, inactiveTrackColor: line, thumbColor: c, overlayColor: c.withValues(alpha: .12), trackHeight: 2, thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 5)), child: Slider(value: macro, min: -1, max: 1, onChanged: (v) => setState(() { macro = v; gains[selected] = v * 6; })))),
-          SizedBox(width: 39, child: Text((macro * 100).round().toString() + '%', textAlign: TextAlign.right, style: TextStyle(color: c, fontSize: 10, fontFeatures: const [FontFeature.tabularFigures()]))),
+          SizedBox(width: 39, child: Text('${(macro * 100).round()}%', textAlign: TextAlign.right, style: TextStyle(color: c, fontSize: 10, fontFeatures: const [FontFeature.tabularFigures()]))),
         ]),
       ])),
     ]));
@@ -367,7 +366,7 @@ class EqCurvePainter extends CustomPainter {
       final y = r.top + r.height*i/4;
       canvas.drawLine(Offset(r.left,y), Offset(r.right,y), grid);
       final db = 12-i*6;
-      text.text = TextSpan(text: (db>0?'+':'')+db.toString(), style: const TextStyle(color: muted, fontSize: 8));
+      text.text = TextSpan(text: `${db>0?'+':''}$db`, style: const TextStyle(color: muted, fontSize: 8));
       text.layout(); text.paint(canvas, Offset(0,y-5));
     }
     const labels = ['20','50','100','500','1k','5k','10k','20k'];

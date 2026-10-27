@@ -161,24 +161,79 @@ class _CoreDeckScreenState extends State<CoreDeckScreen> {
   ]));
 
   Widget meters(bool vertical) {
-    const values = [.36,.62,.51,.77,.43,.58,.31,.68,.47,.25,.55,.39];
-    Color bar(double v) => v > .72 ? amber : cyan.withValues(alpha: bypass ? .12 : .2 + v * .8);
-    if (vertical) return Padding(padding: const EdgeInsets.symmetric(vertical: 20), child: Column(children: [
-      const Text('IN', style: TextStyle(color: muted, fontSize: 8)),
-      const SizedBox(height: 8),
-      Expanded(child: Column(mainAxisAlignment: MainAxisAlignment.end, children: values.map((v) => Container(margin: const EdgeInsets.only(bottom: 3), width: 17, height: 8, color: bar(v)))).toList())),
-      const SizedBox(height: 12),
-      const Text('OUT', style: TextStyle(color: muted, fontSize: 8)),
-      const SizedBox(height: 8),
-      Expanded(child: Column(mainAxisAlignment: MainAxisAlignment.end, children: values.reversed.map((v) => Container(margin: const EdgeInsets.only(bottom: 3), width: 17, height: 8, color: bar(v)))).toList())),
-    ]));
-    return Container(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7), decoration: const BoxDecoration(border: Border(top: BorderSide(color: line))), child: Row(children: [
-      const Text('IN', style: TextStyle(color: muted, fontSize: 8, letterSpacing: 1)),
-      const SizedBox(width: 8),
-      Expanded(child: Row(children: values.map((v) => Expanded(child: Container(margin: const EdgeInsets.symmetric(horizontal: 1), height: 7, color: bar(v)))).toList())),
-      const SizedBox(width: 8),
-      const Text('OUT', style: TextStyle(color: muted, fontSize: 8, letterSpacing: 1)),
-    ]));
+    const values = [.36, .62, .51, .77, .43, .58, .31, .68, .47, .25, .55, .39];
+    Color bar(double value) => value > .72
+        ? amber
+        : cyan.withValues(alpha: bypass ? .12 : .2 + value * .8);
+
+    if (vertical) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 20),
+        child: Column(
+          children: [
+            const Text('IN', style: TextStyle(color: muted, fontSize: 8)),
+            const SizedBox(height: 8),
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: values
+                    .map((value) => Container(
+                          margin: const EdgeInsets.only(bottom: 3),
+                          width: 17,
+                          height: 8,
+                          color: bar(value),
+                        ))
+                    .toList(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            const Text('OUT', style: TextStyle(color: muted, fontSize: 8)),
+            const SizedBox(height: 8),
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: values.reversed
+                    .map((value) => Container(
+                          margin: const EdgeInsets.only(bottom: 3),
+                          width: 17,
+                          height: 8,
+                          color: bar(value),
+                        ))
+                    .toList(),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+      decoration: const BoxDecoration(
+        border: Border(top: BorderSide(color: line)),
+      ),
+      child: Row(
+        children: [
+          const Text('IN', style: TextStyle(color: muted, fontSize: 8, letterSpacing: 1)),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Row(
+              children: values
+                  .map((value) => Expanded(
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 1),
+                          height: 7,
+                          color: bar(value),
+                        ),
+                      ))
+                  .toList(),
+            ),
+          ),
+          const SizedBox(width: 8),
+          const Text('OUT', style: TextStyle(color: muted, fontSize: 8, letterSpacing: 1)),
+        ],
+      ),
+    );
   }
 
   Widget analysisRail() => Center(child: RotatedBox(quarterTurns: 1, child: TextButton.icon(onPressed: () => setState(() => selected = 1), icon: const Icon(Icons.show_chart, size: 14), label: const Text('SPECTRUM', style: TextStyle(fontSize: 9, letterSpacing: 1)), style: TextButton.styleFrom(foregroundColor: cyan))));

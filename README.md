@@ -26,7 +26,7 @@ iOS system-wide interception is not available to ordinary third-party apps. The 
 
 ## Development status
 
-The project repository has been created. The first Command Deck UI prototype was initially drafted in ZillaEQ but is being moved here before further implementation. UI-only meters and controls must remain clearly marked as previews until connected to the native engine.
+The standalone repository now contains the transferred Command Deck UI, Flutter widget tests, a C++17 10-band parametric EQ foundation, a bounded single-producer/single-consumer parameter queue, smoothed input/output gain, and native DSP smoke tests. CI compiles and tests the C++ core. The Command Deck meters, latency/CPU telemetry, presets and bypass control are still presentation-only and are not yet connected to native processing or device audio. Android/iOS audio integration remains unimplemented and must be validated on real hardware.
 
 ## Planned structure
 

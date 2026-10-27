@@ -242,7 +242,7 @@ class _CoreVisualizerScreenState extends State<CoreVisualizerScreen>
       const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text('PROCESSING ENGINE', style: TextStyle(color: _text, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: .5)),
         SizedBox(height: 4),
-        Text('Native DSP is packaged; device audio routing is not connected yet.', style: TextStyle(color: _muted, fontSize: 10, height: 1.4)),
+        Text('Native engine controls are not loaded by this screen yet.', style: TextStyle(color: _muted, fontSize: 10, height: 1.4)),
       ])),
     ])),
   ]);

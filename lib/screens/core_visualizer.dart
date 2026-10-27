@@ -286,7 +286,7 @@ class OrbitalPainter extends CustomPainter {
       final p2 = c + Offset(math.cos(a) * (base + h), math.sin(a) * (base + h) * .76);
       final accent = wave > .77 ? amber : cyan;
       canvas.drawLine(p1, p2, Paint()..color = (front ? accent : muted).withOpacity(front ? .9 : .2)
-        ..strokeWidth = spectrum ? 2.2 : 2.8..strokeCap = StrokeCap.square);
+        ..strokeWidth = (spectrum ? 2.2 : 2.8)..strokeCap = StrokeCap.square);
       if (front && i % 4 == 0) canvas.drawCircle(p2, 1.5, Paint()..color = accent.withOpacity(.9));
     }
     canvas.drawCircle(c, r * .09, Paint()..color = const Color(0xFF13272B));

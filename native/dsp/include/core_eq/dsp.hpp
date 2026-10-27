@@ -11,6 +11,8 @@ struct BiquadCoefficients {
   float a0{1.0f}, a1{0.0f}, a2{0.0f};
 };
 
+BiquadCoefficients design_peaking(float frequency_hz, float q, float gain_db, float sample_rate) noexcept;
+
 class Biquad {
  public:
   void set_peaking(float frequency_hz, float q, float gain_db, float sample_rate) noexcept;

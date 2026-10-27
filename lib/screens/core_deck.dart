@@ -170,7 +170,7 @@ class _CoreDeckScreenState extends State<CoreDeckScreen> {
       const SizedBox(height: 12),
       const Text('OUT', style: TextStyle(color: muted, fontSize: 8)),
       const SizedBox(height: 8),
-      Expanded(child: Column(mainAxisAlignment: MainAxisAlignment.end, children: values.reversed.map((v) => Container(margin: const EdgeInsets.only(bottom: 3), width: 17, height: 8, color: bar(v))).toList())),
+      Expanded(child: Column(mainAxisAlignment: MainAxisAlignment.end, children: values.reversed.map((v) => Container(margin: const EdgeInsets.only(bottom: 3), width: 17, height: 8, color: bar(v)))).toList())),
     ]));
     return Container(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7), decoration: const BoxDecoration(border: Border(top: BorderSide(color: line))), child: Row(children: [
       const Text('IN', style: TextStyle(color: muted, fontSize: 8, letterSpacing: 1)),

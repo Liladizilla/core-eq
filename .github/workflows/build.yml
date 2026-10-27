@@ -24,6 +24,9 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+      - uses: android-actions/setup-android@v3
+      - name: Install Android NDK
+        run: sdkmanager "ndk;27.0.12077973"
       - name: Generate Android runner scaffold
         run: flutter create --platforms=android --project-name core_eq .
       - name: Resolve dependencies

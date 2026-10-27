@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'screens/core_deck.dart';
+import 'screens/core_visualizer.dart';
 
 void main() {
   runApp(const CoreEqApp());
@@ -15,13 +15,13 @@ class CoreEqApp extends StatelessWidget {
       title: 'CORE-EQ',
       debugShowCheckedModeBanner: false,
       theme: base.copyWith(
-        scaffoldBackgroundColor: const Color(0xFF07090C),
+        scaffoldBackgroundColor: const Color(0xFF080A0D),
         colorScheme: base.colorScheme.copyWith(
-          primary: const Color(0xFF00E5FF),
-          secondary: const Color(0xFFFFB300),
+          primary: const Color(0xFF62E6E3),
+          secondary: const Color(0xFFFFB45C),
         ),
       ),
-      home: const CoreDeckScreen(),
+      home: const CoreVisualizerScreen(),
     );
   }
 }

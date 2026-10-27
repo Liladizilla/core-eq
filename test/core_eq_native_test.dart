@@ -33,11 +33,8 @@ void main() {
       );
     });
 
-    test('unknown native status codes fail closed', () {
-      expect(
-        CoreEqStatus.fromCode(999),
-        CoreEqStatus.invalidArgument,
-      );
+    test('unknown native status codes remain explicitly unknown', () {
+      expect(CoreEqStatus.fromCode(999), CoreEqStatus.unknown);
     });
   });
 }

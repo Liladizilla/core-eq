@@ -10,6 +10,7 @@ final class CoreEqAndroidAudioStatus {
     required this.channels,
     required this.source,
     this.frequencyHz = 440,
+    this.amplitude = 0.06,
     required this.peakLevel,
     this.error,
   });
@@ -19,6 +20,7 @@ final class CoreEqAndroidAudioStatus {
   final int channels;
   final String source;
   final int frequencyHz;
+  final double amplitude;
   /// Linear peak amplitude reported by native DSP, clamped to 0..1.
   final double peakLevel;
   final String? error;
@@ -32,6 +34,7 @@ final class CoreEqAndroidAudioStatus {
       channels: map['channels'] is int ? map['channels']! as int : 0,
       source: map['source'] is String ? map['source']! as String : 'unknown',
       frequencyHz: map['frequencyHz'] is int ? map['frequencyHz']! as int : 440,
+      amplitude: map['amplitude'] is num ? (map['amplitude']! as num).toDouble() : 0.06,
       peakLevel: peak.isFinite ? peak.clamp(0.0, 1.0).toDouble() : 0.0,
       error: map['error'] is String ? map['error']! as String : null,
     );
@@ -48,13 +51,19 @@ final class CoreEqAndroidAudio {
 
   final MethodChannel _channel;
 
-  Future<CoreEqAndroidAudioStatus> startTestTone({int frequencyHz = 440}) async {
+  Future<CoreEqAndroidAudioStatus> startTestTone({
+    int frequencyHz = 440,
+    double amplitude = 0.06,
+  }) async {
     const allowed = <int>{32, 64, 125, 250, 440, 1000};
     if (!allowed.contains(frequencyHz)) {
       throw ArgumentError.value(frequencyHz, 'frequencyHz', 'Unsupported test tone frequency.');
     }
+    if (!amplitude.isFinite || amplitude < 0.02 || amplitude > 0.12) {
+      throw ArgumentError.value(amplitude, 'amplitude', 'Test tone level must be between 0.02 and 0.12.');
+    }
     final result = await _channel.invokeMapMethod<Object?, Object?>(
-      'startTestTone', {'frequencyHz': frequencyHz},
+      'startTestTone', {'frequencyHz': frequencyHz, 'amplitude': amplitude},
     );
     if (result == null) {
       throw PlatformException(

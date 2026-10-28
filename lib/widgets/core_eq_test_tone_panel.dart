@@ -25,6 +25,7 @@ class _CoreEqTestTonePanelState extends State<CoreEqTestTonePanel> {
   bool _running = false;
   bool _busy = false;
   int _frequencyHz = 440;
+  double _amplitude = 0.06;
   String? _error;
 
   Future<void> _toggle() async {
@@ -33,7 +34,7 @@ class _CoreEqTestTonePanelState extends State<CoreEqTestTonePanel> {
     try {
       final status = _running
           ? await _audio.stop()
-          : await _audio.startTestTone(frequencyHz: _frequencyHz);
+          : await _audio.startTestTone(frequencyHz: _frequencyHz, amplitude: _amplitude);
       if (!mounted) return;
       setState(() {
         _running = status.running;
@@ -99,6 +100,33 @@ class _CoreEqTestTonePanelState extends State<CoreEqTestTonePanel> {
         onChanged: _running || _busy ? null : (hz) {
           if (hz != null) setState(() => _frequencyHz = hz);
         },
+      ),
+      const SizedBox(height: 10),
+      Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          const Text('TEST LEVEL', style: TextStyle(
+            color: _panelMuted, fontSize: 10, letterSpacing: .5,
+          )),
+          Text('${(_amplitude * 100).round()}% amplitude', style: const TextStyle(
+            color: _panelText, fontSize: 11, fontFeatures: [],
+          )),
+        ],
+      ),
+      Slider(
+        value: _amplitude,
+        min: 0.02,
+        max: 0.12,
+        divisions: 10,
+        activeColor: _panelCyan,
+        inactiveColor: _panelLine,
+        onChanged: _running || _busy ? null : (value) {
+          setState(() => _amplitude = value);
+        },
+      ),
+      const Text(
+        'Limited to 2–12% signal amplitude. Device volume still controls loudness.',
+        style: TextStyle(color: _panelMuted, fontSize: 10, height: 1.4),
       ),
       const SizedBox(height: 12),
       SizedBox(

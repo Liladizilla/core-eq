@@ -180,9 +180,9 @@ class _CoreVisualizerScreenState extends State<CoreVisualizerScreen>
           border: Border.all(color: _line),
         ),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
-          Container(width: 6, height: 6, decoration: const BoxDecoration(color: _amber, shape: BoxShape.circle)),
+          Container(width: 6, height: 6, decoration: BoxDecoration(color: _toneRunning ? _cyan : _amber, shape: BoxShape.circle)),
           const SizedBox(width: 7),
-          const Text('AUDIO OFFLINE', style: TextStyle(color: _muted, fontSize: 9, letterSpacing: .7, fontWeight: FontWeight.w700)),
+          Text(_toneRunning ? 'TEST TONE ACTIVE' : 'AUDIO OFFLINE', style: TextStyle(color: _toneRunning ? _cyan : _muted, fontSize: 9, letterSpacing: .7, fontWeight: FontWeight.w700)),
         ]),
       ),
     ]),

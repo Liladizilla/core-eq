@@ -24,6 +24,7 @@ class CoreEqAudioPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
     private var engine: Long = 0L
     private var lastError: String? = null
     @Volatile private var toneFrequencyHz = 440
+    @Volatile private var toneAmplitude = 0.06f
     // Preserve controls while stopped and restore them into each new native session.
     private val bandGainsDb = FloatArray(10) { 0.0f }
     @Volatile private var outputGainDb = 0.0f
@@ -42,13 +43,18 @@ class CoreEqAudioPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
         when (call.method) {
             "startTestTone" -> {
                 val frequencyHz = call.argument<Int>("frequencyHz") ?: 440
+                val amplitude = call.argument<Double>("amplitude")?.toFloat() ?: 0.06f
                 if (frequencyHz !in setOf(32, 64, 125, 250, 440, 1000)) {
                     result.error("INVALID_TONE_FREQUENCY", "Choose 32, 64, 125, 250, 440, or 1000 Hz.", null)
                     return
                 }
+                if (!amplitude.isFinite() || amplitude !in 0.02f..0.12f) {
+                    result.error("INVALID_TONE_AMPLITUDE", "Test tone level must be between 0.02 and 0.12.", null)
+                    return
+                }
                 if (running) { result.success(status()); return }
                 try {
-                    startPlayback(frequencyHz)
+                    startPlayback(frequencyHz, amplitude)
                     result.success(status())
                 } catch (e: Exception) {
                     lastError = e.message ?: e.javaClass.simpleName
@@ -119,8 +125,9 @@ class CoreEqAudioPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
     }
 
     @Synchronized
-    private fun startPlayback(frequencyHz: Int) {
+    private fun startPlayback(frequencyHz: Int, amplitude: Float) {
         toneFrequencyHz = frequencyHz
+        toneAmplitude = amplitude
         check(Build.VERSION.SDK_INT >= 23) { "Generated float-PCM playback requires Android 6.0 or newer." }
         check(!running) { "Playback is already running." }
         System.loadLibrary("core_eq")
@@ -187,8 +194,8 @@ class CoreEqAudioPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
                 while (running) {
                     floats.position(0)
                     for (frame in 0 until frames) {
-                        val left = (0.12 * sin(phase - 0.09)).toFloat()
-                        val right = (0.12 * sin(phase + 0.09)).toFloat()
+                        val left = (toneAmplitude * sin(phase - 0.09)).toFloat()
+                        val right = (toneAmplitude * sin(phase + 0.09)).toFloat()
                         phase += step
                         if (phase >= 2.0 * PI) phase -= 2.0 * PI
                         floats.put(left)
@@ -278,6 +285,7 @@ class CoreEqAudioPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
         "channels" to 2,
         "source" to "generated_test_tone",
         "frequencyHz" to toneFrequencyHz,
+        "amplitude" to toneAmplitude.toDouble(),
         "peakLevel" to if (engine != 0L) nativeGetPeakLevel(engine).coerceIn(0.0f, 1.0f) else 0.0f,
         "error" to lastError
     )

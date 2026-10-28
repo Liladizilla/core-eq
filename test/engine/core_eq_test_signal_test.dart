@@ -65,6 +65,10 @@ void main() {
         }
 
         expect(() => generate(frames: 0), throwsArgumentError);
+        expect(
+          () => generate(frames: CoreEqPcmProbe.maxFrames + 1),
+          throwsArgumentError,
+        );
         expect(() => generate(channels: 3), throwsArgumentError);
         expect(() => generate(amplitude: 0), throwsArgumentError);
         expect(() => generate(amplitude: 1.01), throwsArgumentError);

@@ -14,7 +14,7 @@ endif()
 add_library(core_eq_c SHARED ${CORE_EQ_C_SOURCES})
 target_include_directories(core_eq_c PUBLIC include)
 target_link_libraries(core_eq_c PRIVATE core_eq_dsp)
-target_compile_features(core_eq_c PUBLIC cxx_std_17)
+target_compile_features(core_eq_c PRIVATE cxx_std_17)
 target_compile_definitions(core_eq_c PRIVATE CORE_EQ_C_API_BUILD)
 set_target_properties(core_eq_c PROPERTIES
   CXX_VISIBILITY_PRESET hidden
@@ -28,6 +28,10 @@ if(CORE_EQ_BUILD_TESTS)
   add_executable(core_eq_dsp_tests tests/dsp_test.cpp)
   target_link_libraries(core_eq_dsp_tests PRIVATE core_eq_dsp)
   add_test(NAME core_eq_dsp_tests COMMAND core_eq_dsp_tests)
+
+  add_executable(core_eq_frequency_response_tests tests/frequency_response_test.cpp)
+  target_link_libraries(core_eq_frequency_response_tests PRIVATE core_eq_dsp)
+  add_test(NAME core_eq_frequency_response_tests COMMAND core_eq_frequency_response_tests)
 
   add_executable(core_eq_c_api_tests tests/c_api_test.cpp)
   target_link_libraries(core_eq_c_api_tests PRIVATE core_eq_c)

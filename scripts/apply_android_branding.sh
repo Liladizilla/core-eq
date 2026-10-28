@@ -12,6 +12,16 @@ if [[ ! -f "$manifest" ]]; then
   exit 1
 fi
 
+# Make the helper safe to rerun locally and in future build steps.
+if grep -q 'android:icon="@drawable/ic_core_eq"' "$manifest"; then
+  if [[ -f "$icon" ]]; then
+    echo "CORE-EQ launcher icon already applied: $icon"
+    exit 0
+  fi
+  echo "Manifest references CORE-EQ branding but the drawable is missing: $icon" >&2
+  exit 1
+fi
+
 mkdir -p "$(dirname "$icon")"
 cat > "$icon" <<'XML'
 <vector xmlns:android="http://schemas.android.com/apk/res/android"

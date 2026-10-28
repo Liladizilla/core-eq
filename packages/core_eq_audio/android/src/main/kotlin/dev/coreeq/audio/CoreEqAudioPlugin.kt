@@ -161,6 +161,7 @@ class CoreEqAudioPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
         "sampleRateHz" to 48000,
         "channels" to 2,
         "source" to "generated_test_tone",
+        "peakLevel" to if (engine != 0L) nativeGetPeakLevel(engine).coerceIn(0.0f, 1.0f) else 0.0f,
         "error" to lastError
     )
 
@@ -172,4 +173,5 @@ class CoreEqAudioPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
     private external fun nativeCreate(): Long
     private external fun nativeDestroy(handle: Long)
     private external fun nativeProcess(handle: Long, pcm: ByteBuffer, frames: Int, channels: Int): Int
+    private external fun nativeGetPeakLevel(handle: Long): Float
 }

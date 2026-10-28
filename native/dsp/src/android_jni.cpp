@@ -36,3 +36,15 @@ Java_dev_coreeq_audio_CoreEqAudioPlugin_nativeProcess(
       core_eq_process(handle, samples, static_cast<size_t>(frames),
                       static_cast<size_t>(channels)));
 }
+
+extern "C" JNIEXPORT jfloat JNICALL
+Java_dev_coreeq_audio_CoreEqAudioPlugin_nativeGetPeakLevel(
+    JNIEnv*, jobject, jlong raw_handle) {
+  auto* handle = reinterpret_cast<core_eq_handle*>(raw_handle);
+  float peak_level = 0.0f;
+  if (handle == nullptr ||
+      core_eq_get_peak_level(handle, &peak_level) != CORE_EQ_STATUS_OK) {
+    return 0.0f;
+  }
+  return peak_level;
+}

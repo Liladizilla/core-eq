@@ -9,6 +9,7 @@ void main() {
         'sampleRateHz': 48000,
         'channels': 2,
         'source': 'generated_test_tone',
+        'peakLevel': 0.12,
         'error': null,
       });
 
@@ -16,6 +17,7 @@ void main() {
       expect(status.sampleRateHz, 48000);
       expect(status.channels, 2);
       expect(status.source, 'generated_test_tone');
+      expect(status.peakLevel, closeTo(0.12, 0.0001));
       expect(status.error, isNull);
     });
 
@@ -25,13 +27,24 @@ void main() {
         'sampleRateHz': '48000',
         'channels': false,
         'source': 123,
+        'peakLevel': 'loud',
       });
 
       expect(status.running, isFalse);
       expect(status.sampleRateHz, 0);
       expect(status.channels, 0);
       expect(status.source, 'unknown');
+      expect(status.peakLevel, 0.0);
       expect(status.error, isNull);
+    });
+
+    test('clamps native peak values into the supported range', () {
+      final above = CoreEqAndroidAudioStatus.fromMap({'peakLevel': 2.5});
+      final below = CoreEqAndroidAudioStatus.fromMap({'peakLevel': -0.5});
+      final nan = CoreEqAndroidAudioStatus.fromMap({'peakLevel': double.nan});
+      expect(above.peakLevel, 1.0);
+      expect(below.peakLevel, 0.0);
+      expect(nan.peakLevel, 0.0);
     });
 
     test('preserves a platform-reported error', () {
@@ -40,6 +53,7 @@ void main() {
         'sampleRateHz': 48000,
         'channels': 2,
         'source': 'generated_test_tone',
+        'peakLevel': 0.0,
         'error': 'AudioTrack initialization failed.',
       });
 

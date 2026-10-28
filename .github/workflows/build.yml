@@ -44,3 +44,12 @@ jobs:
           test -f android/app/src/main/jniLibs/arm64-v8a/libcore_eq.so
           test -f android/app/src/main/jniLibs/armeabi-v7a/libcore_eq.so
           test -f android/app/src/main/jniLibs/x86_64/libcore_eq.so
+      - name: Build release APK
+        run: flutter build apk --release
+      - name: Upload release APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: core-eq-release-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
+          retention-days: 14

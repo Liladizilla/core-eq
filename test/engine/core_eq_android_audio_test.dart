@@ -10,6 +10,7 @@ void main() {
         'sampleRateHz': 48000,
         'channels': 2,
         'source': 'generated_test_tone',
+        'frequencyHz': 125,
         'peakLevel': 0.12,
         'error': null,
       });
@@ -18,8 +19,14 @@ void main() {
       expect(status.sampleRateHz, 48000);
       expect(status.channels, 2);
       expect(status.source, 'generated_test_tone');
+      expect(status.frequencyHz, 125);
       expect(status.peakLevel, closeTo(0.12, 0.0001));
       expect(status.error, isNull);
+    });
+
+    test('defaults missing frequency to 440 Hz for older native plugins', () {
+      final status = CoreEqAndroidAudioStatus.fromMap({'running': false});
+      expect(status.frequencyHz, 440);
     });
 
     test('uses safe defaults for malformed platform values', () {
@@ -84,3 +91,34 @@ void main() {
   });
 
 }
+
+test('forwards selected frequency to the Android audio channel', () async {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  const channel = MethodChannel('core_eq_audio_frequency_test');
+  final calls = <MethodCall>[];
+  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+      .setMockMethodCallHandler(channel, (call) async {
+    calls.add(call);
+    return {
+      'running': true,
+      'sampleRateHz': 48000,
+      'channels': 2,
+      'source': 'generated_test_tone',
+      'frequencyHz': 64,
+      'peakLevel': 0.1,
+    };
+  });
+
+  final audio = CoreEqAndroidAudio(channel: channel);
+  final status = await audio.startTestTone(frequencyHz: 64);
+  expect(calls.single.method, 'startTestTone');
+  expect(calls.single.arguments, {'frequencyHz': 64});
+  expect(status.frequencyHz, 64);
+
+  await expectLater(
+    audio.startTestTone(frequencyHz: 55),
+    throwsArgumentError,
+  );
+  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+      .setMockMethodCallHandler(channel, null);
+});

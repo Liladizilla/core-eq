@@ -2,7 +2,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <iostream>
-#include <limits>
+#include <limits>\n#include <algorithm>
 #include <vector>
 
 int main() {
@@ -140,6 +140,26 @@ int main() {
   std::vector<float> unchanged(32, 0.25f);
   event_bypass.process(unchanged.data(), unchanged.size(), 1);
   for (float x : unchanged) if (x != 0.25f) return EXIT_FAILURE;
+
+  // Output gain must clamp positive and negative peaks and report the
+  // actual post-processing peak rather than an unclipped intermediate value.
+  core_eq::ParametricEq10 clipping;
+  clipping.set_output_gain_db(12.0f);
+  std::vector<float> hot_signal = {0.95f, -0.95f, 0.5f, -0.5f};
+  clipping.process(hot_signal.data(), hot_signal.size(), 1);
+  float maximum = 0.0f;
+  for (float sample : hot_signal) {
+    if (!std::isfinite(sample) || sample < -1.0f || sample > 1.0f) {
+      std::cerr << "Output clipping guard failed\\n";
+      return EXIT_FAILURE;
+    }
+    maximum = std::max(maximum, std::abs(sample));
+  }
+  if (maximum != 1.0f ||
+      std::abs(clipping.peak_level() - maximum) > 1.0e-6f) {
+    std::cerr << "Clipped output peak meter mismatch\\n";
+    return EXIT_FAILURE;
+  }
 
   std::cout << "CORE-EQ DSP smoke tests passed\n";
   return EXIT_SUCCESS;

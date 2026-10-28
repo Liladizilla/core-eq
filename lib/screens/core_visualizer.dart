@@ -179,7 +179,7 @@ class _CoreVisualizerScreenState extends State<CoreVisualizerScreen>
         final selected = _preset == i;
         return InkWell(
           borderRadius: BorderRadius.circular(18),
-          onTap: () => setState(() {
+          onTap: () { setState(() {
             _preset = i;
             final curve = CoreEqControlMapper.presetGainsDb[_presets[i]]!;
             for (var j = 0; j < _bands.length; j++) {
@@ -189,6 +189,7 @@ class _CoreVisualizerScreenState extends State<CoreVisualizerScreen>
             _bassBoost = i == 1;
           });
           _syncNativeSettings();
+        },
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 160),
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),

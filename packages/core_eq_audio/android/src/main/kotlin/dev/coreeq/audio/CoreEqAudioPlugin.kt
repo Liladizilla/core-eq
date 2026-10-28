@@ -47,6 +47,44 @@ class CoreEqAudioPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
                 result.success(status())
             }
             "status" -> result.success(status())
+            "setBandGain" -> {
+                val band = call.argument<Int>("band")
+                val gainDb = call.argument<Double>("gainDb")
+                if (band == null || gainDb == null || band !in 0..9 ||
+                    !gainDb.isFinite() || gainDb !in -12.0..12.0) {
+                    result.error("INVALID_EQ_PARAMETER", "Band must be 0..9 and gain must be -12..12 dB.", null)
+                } else if (engine == 0L) {
+                    result.error("AUDIO_ENGINE_STOPPED", "Start the test tone before changing native EQ parameters.", null)
+                } else {
+                    val code = nativeSetBandGain(engine, band, gainDb.toFloat())
+                    if (code == 0) result.success(null)
+                    else result.error("NATIVE_EQ_REJECTED", "Native DSP rejected band update (status $code).", null)
+                }
+            }
+            "setOutputGain" -> {
+                val gainDb = call.argument<Double>("gainDb")
+                if (gainDb == null || !gainDb.isFinite() || gainDb !in -24.0..6.0) {
+                    result.error("INVALID_EQ_PARAMETER", "Output gain must be -24..6 dB.", null)
+                } else if (engine == 0L) {
+                    result.error("AUDIO_ENGINE_STOPPED", "Start the test tone before changing native EQ parameters.", null)
+                } else {
+                    val code = nativeSetOutputGain(engine, gainDb.toFloat())
+                    if (code == 0) result.success(null)
+                    else result.error("NATIVE_EQ_REJECTED", "Native DSP rejected output gain (status $code).", null)
+                }
+            }
+            "setBypassed" -> {
+                val bypassed = call.argument<Boolean>("bypassed")
+                if (bypassed == null) {
+                    result.error("INVALID_EQ_PARAMETER", "Bypass must be a boolean.", null)
+                } else if (engine == 0L) {
+                    result.error("AUDIO_ENGINE_STOPPED", "Start the test tone before changing native EQ parameters.", null)
+                } else {
+                    val code = nativeSetBypassed(engine, bypassed)
+                    if (code == 0) result.success(null)
+                    else result.error("NATIVE_EQ_REJECTED", "Native DSP rejected bypass update (status $code).", null)
+                }
+            }
             else -> result.notImplemented()
         }
     }
@@ -174,4 +212,7 @@ class CoreEqAudioPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
     private external fun nativeDestroy(handle: Long)
     private external fun nativeProcess(handle: Long, pcm: ByteBuffer, frames: Int, channels: Int): Int
     private external fun nativeGetPeakLevel(handle: Long): Float
+    private external fun nativeSetBandGain(handle: Long, band: Int, gainDb: Float): Int
+    private external fun nativeSetOutputGain(handle: Long, gainDb: Float): Int
+    private external fun nativeSetBypassed(handle: Long, bypassed: Boolean): Int
 }

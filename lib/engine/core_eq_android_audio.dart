@@ -67,6 +67,21 @@ final class CoreEqAndroidAudio {
     return CoreEqAndroidAudioStatus.fromMap(result);
   }
 
+  Future<void> setBandGain(int band, double gainDb) async {
+    await _channel.invokeMethod<void>('setBandGain', {
+      'band': band,
+      'gainDb': gainDb,
+    });
+  }
+
+  Future<void> setOutputGain(double gainDb) async {
+    await _channel.invokeMethod<void>('setOutputGain', {'gainDb': gainDb});
+  }
+
+  Future<void> setBypassed(bool bypassed) async {
+    await _channel.invokeMethod<void>('setBypassed', {'bypassed': bypassed});
+  }
+
   Future<CoreEqAndroidAudioStatus> readStatus() async {
     final result = await _channel.invokeMapMethod<Object?, Object?>('status');
     if (result == null) {

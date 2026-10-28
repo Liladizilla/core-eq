@@ -63,6 +63,7 @@ void main() {
     });
   });
   test('forwards spatial enablement to the Android audio channel', () async {
+    TestWidgetsFlutterBinding.ensureInitialized();
     const channel = MethodChannel('core_eq_audio_test');
     final calls = <MethodCall>[];
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger

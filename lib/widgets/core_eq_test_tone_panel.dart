@@ -84,7 +84,7 @@ class _CoreEqTestTonePanelState extends State<CoreEqTestTonePanel> {
       ),
       const SizedBox(height: 12),
       DropdownButtonFormField<int>(
-        value: _frequencyHz,
+        initialValue: _frequencyHz,
         dropdownColor: _panelBg,
         decoration: const InputDecoration(
           labelText: 'TEST FREQUENCY',

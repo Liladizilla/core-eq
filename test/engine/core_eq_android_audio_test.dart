@@ -90,7 +90,6 @@ void main() {
         .setMockMethodCallHandler(channel, null);
   });
 
-}
 
 test('forwards selected frequency to the Android audio channel', () async {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -122,3 +121,5 @@ test('forwards selected frequency to the Android audio channel', () async {
   TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
       .setMockMethodCallHandler(channel, null);
 });
+
+}

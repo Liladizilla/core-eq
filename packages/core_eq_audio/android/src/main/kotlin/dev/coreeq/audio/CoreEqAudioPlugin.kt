@@ -133,6 +133,12 @@ class CoreEqAudioPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
     @Synchronized
     private fun stopPlayback() {
         running = false
+        val audioTrack = track
+        // Stop first so a blocking AudioTrack.write can return before we join.
+        try { audioTrack?.pause() } catch (_: Exception) {}
+        try { audioTrack?.flush() } catch (_: Exception) {}
+        try { audioTrack?.stop() } catch (_: Exception) {}
+
         val thread = worker
         if (thread != null && thread !== Thread.currentThread()) {
             thread.join(2000)
@@ -142,8 +148,7 @@ class CoreEqAudioPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
             }
         }
         worker = null
-        try { track?.stop() } catch (_: Exception) {}
-        track?.release()
+        audioTrack?.release()
         track = null
         if (engine != 0L) {
             nativeDestroy(engine)

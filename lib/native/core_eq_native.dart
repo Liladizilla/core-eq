@@ -325,6 +325,7 @@ final class CoreEqEngineSession implements CoreEqEngineControls {
   }
 
   /// Low-level read into caller-owned native memory. Prefer [readPeakLevel].
+  @override
   CoreEqStatus getPeakLevel(Pointer<Float> peakLevel) {
     _ensureOpen();
     return _native.getPeakLevel(_handle, peakLevel);

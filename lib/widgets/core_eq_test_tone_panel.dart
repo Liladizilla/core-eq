@@ -12,14 +12,16 @@ const _panelAmber = Color(0xFFFFBD72);
 
 /// Visible control for the Android generated test tone only.
 class CoreEqTestTonePanel extends StatefulWidget {
-  const CoreEqTestTonePanel({super.key});
+  const CoreEqTestTonePanel({super.key, required this.audio});
+
+  final CoreEqAndroidAudio audio;
 
   @override
   State<CoreEqTestTonePanel> createState() => _CoreEqTestTonePanelState();
 }
 
 class _CoreEqTestTonePanelState extends State<CoreEqTestTonePanel> {
-  final CoreEqAndroidAudio _audio = CoreEqAndroidAudio();
+  CoreEqAndroidAudio get _audio => widget.audio;
   bool _running = false;
   bool _busy = false;
   String? _error;

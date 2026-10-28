@@ -12,9 +12,12 @@ const _panelAmber = Color(0xFFFFBD72);
 
 /// Visible control for the Android generated test tone only.
 class CoreEqTestTonePanel extends StatefulWidget {
-  const CoreEqTestTonePanel({super.key, required this.audio});
+  const CoreEqTestTonePanel({super.key, required this.audio, this.androidPlatformOverride});
 
   final CoreEqAndroidAudio audio;
+
+  /// Allows deterministic platform-specific widget tests without global overrides.
+  final bool? androidPlatformOverride;
 
   @override
   State<CoreEqTestTonePanel> createState() => _CoreEqTestTonePanelState();
@@ -22,6 +25,7 @@ class CoreEqTestTonePanel extends StatefulWidget {
 
 class _CoreEqTestTonePanelState extends State<CoreEqTestTonePanel> {
   CoreEqAndroidAudio get _audio => widget.audio;
+  bool get _isAndroid => widget.androidPlatformOverride ?? defaultTargetPlatformIsAndroid;
   bool _running = false;
   bool _busy = false;
   int _frequencyHz = 440;
@@ -132,7 +136,7 @@ class _CoreEqTestTonePanelState extends State<CoreEqTestTonePanel> {
       SizedBox(
         width: double.infinity,
         child: OutlinedButton.icon(
-          onPressed: _busy || !defaultTargetPlatformIsAndroid ? null : _toggle,
+          onPressed: _busy || !_isAndroid ? null : _toggle,
           icon: _busy
               ? const SizedBox(width: 15, height: 15, child: CircularProgressIndicator(strokeWidth: 2))
               : Icon(_running ? Icons.stop_circle_outlined : Icons.play_circle_outline),
@@ -144,7 +148,7 @@ class _CoreEqTestTonePanelState extends State<CoreEqTestTonePanel> {
           ),
         ),
       ),
-      if (!defaultTargetPlatformIsAndroid) ...[
+      if (!_isAndroid) ...[
         const SizedBox(height: 8),
         const Text('Android only. No audio is started on this platform.',
           style: TextStyle(color: _panelMuted, fontSize: 10)),

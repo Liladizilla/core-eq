@@ -28,6 +28,7 @@ class _CoreVisualizerScreenState extends State<CoreVisualizerScreen>
   final CoreEqAndroidAudio _audio = CoreEqAndroidAudio();
   Timer? _statusTimer;
   bool _toneRunning = false;
+  bool _statusReadRunning = false;
   double _peakLevel = 0;
   int _preset = 0;
   bool _bassBoost = false;
@@ -54,6 +55,8 @@ class _CoreVisualizerScreenState extends State<CoreVisualizerScreen>
   }
 
   Future<void> _refreshAudioStatus() async {
+    if (_statusReadRunning) return;
+    _statusReadRunning = true;
     try {
       final status = await _audio.readStatus();
       if (!mounted) return;
@@ -67,6 +70,8 @@ class _CoreVisualizerScreenState extends State<CoreVisualizerScreen>
     } catch (_) {
       // The platform channel may be unavailable on desktop or in widget tests.
       // Keep the explicit offline state rather than inventing signal data.
+    } finally {
+      _statusReadRunning = false;
     }
   }
 

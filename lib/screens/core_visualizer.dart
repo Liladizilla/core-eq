@@ -33,7 +33,8 @@ class _CoreVisualizerScreenState extends State<CoreVisualizerScreen>
   double _bass = 0;
   double _volume = 0;
   final List<double> _bands = List<double>.filled(10, 0);
-  Future<void> _nativeUpdates = Future<void>.value();
+  bool _nativeSyncRunning = false;
+  bool _nativeSyncRequested = false;
   String? _nativeControlError;
 
   static const _presets = ['Flat', 'Bass', 'Vocal', 'Rock', 'Podcast'];
@@ -43,29 +44,47 @@ class _CoreVisualizerScreenState extends State<CoreVisualizerScreen>
   void dispose() { _motion.dispose(); super.dispose(); }
 
   void _syncNativeSettings() {
-    // Snapshot the latest UI state and serialize updates to respect the native
-    // DSP's single-producer parameter queue. Older snapshots may finish first,
-    // but the newest snapshot is always applied last.
-    final gains = List<double>.of(_bands);
-    final outputGain = _volume;
-    final bypassed = _bypass;
-    _nativeUpdates = _nativeUpdates.catchError((Object _) {}).then((_) async {
-      try {
-        for (var i = 0; i < gains.length; i++) {
-          await _audio.setBandGain(i, gains[i]);
-        }
-        await _audio.setOutputGain(outputGain);
-        await _audio.setBypassed(bypassed);
-        if (mounted && _nativeControlError != null) {
-          setState(() => _nativeControlError = null);
-        }
-      } catch (error) {
-        if (mounted) {
-          setState(() => _nativeControlError =
-              'Native DSP update failed. Stop the test tone, then retry. ($error)');
+    // Coalesce rapid slider/preset changes instead of queuing a complete stale
+    // snapshot for every pointer event. While native writes are in flight,
+    // remember only that another pass is needed; the next pass reads current
+    // state after the previous pass finishes.
+    _nativeSyncRequested = true;
+    if (_nativeSyncRunning) return;
+    _nativeSyncRunning = true;
+    _runNativeSync();
+  }
+
+  Future<void> _runNativeSync() async {
+    try {
+      while (_nativeSyncRequested && mounted) {
+        _nativeSyncRequested = false;
+        final gains = List<double>.of(_bands);
+        final outputGain = _volume;
+        final bypassed = _bypass;
+        try {
+          for (var i = 0; i < gains.length; i++) {
+            await _audio.setBandGain(i, gains[i]);
+          }
+          await _audio.setOutputGain(outputGain);
+          await _audio.setBypassed(bypassed);
+          if (mounted && _nativeControlError != null) {
+            setState(() => _nativeControlError = null);
+          }
+        } catch (error) {
+          if (mounted) {
+            setState(() => _nativeControlError =
+                'Native DSP update failed. Stop the test tone, then retry. ($error)');
+          }
+          // Do not spin retrying a failed platform call. A later user action
+          // or the visible RETRY button starts a fresh synchronization pass.
+          _nativeSyncRequested = false;
         }
       }
-    });
+    } finally {
+      _nativeSyncRunning = false;
+      // Cover a request that arrived as the previous pass was finishing.
+      if (_nativeSyncRequested && mounted) _syncNativeSettings();
+    }
   }
 
   @override

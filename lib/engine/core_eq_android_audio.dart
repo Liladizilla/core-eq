@@ -24,7 +24,7 @@ final class CoreEqAndroidAudioStatus {
       sampleRateHz: map['sampleRateHz'] is int ? map['sampleRateHz']! as int : 0,
       channels: map['channels'] is int ? map['channels']! as int : 0,
       source: map['source'] is String ? map['source']! as String : 'unknown',
-      error: map['error'] as String?,
+      error: map['error'] is String ? map['error']! as String : null,
     );
   }
 }

@@ -14,7 +14,7 @@ void main() {
           frames: 4,
           channels: 2,
           sampleRateHz: 4,
-          frequencyHz: 0.5,
+          frequencyHz: 1,
           amplitude: 0.5,
         );
 

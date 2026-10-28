@@ -28,6 +28,7 @@ class CoreEqAudioPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
     @Volatile private var outputGainDb = 0.0f
     @Volatile private var bypassed = false
     @Volatile private var limiterEnabled = true
+    @Volatile private var spatialEnabled = false
     // Gain state is owned by the single audio worker.
     private var limiterGain = 1.0f
 
@@ -76,6 +77,15 @@ class CoreEqAudioPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
                     val code = if (engine == 0L) 0 else nativeSetOutputGain(engine, gainDb.toFloat())
                     if (code == 0) result.success(null)
                     else result.error("NATIVE_EQ_REJECTED", "Native DSP rejected output gain (status $code).", null)
+                }
+            }
+            "setSpatialEnabled" -> {
+                val enabled = call.argument<Boolean>("enabled")
+                if (enabled == null) {
+                    result.error("INVALID_EQ_PARAMETER", "Spatial enabled must be a boolean.", null)
+                } else {
+                    spatialEnabled = enabled
+                    result.success(null)
                 }
             }
             "setLimiterEnabled" -> {
@@ -170,14 +180,30 @@ class CoreEqAudioPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
                 while (running) {
                     floats.position(0)
                     for (frame in 0 until frames) {
-                        val sample = (0.12 * sin(phase)).toFloat()
+                        val left = (0.12 * sin(phase - 0.09)).toFloat()
+                        val right = (0.12 * sin(phase + 0.09)).toFloat()
                         phase += step
                         if (phase >= 2.0 * PI) phase -= 2.0 * PI
-                        floats.put(sample)
-                        floats.put(sample)
+                        floats.put(left)
+                        floats.put(right)
                     }
                     check(nativeProcess(engine, pcm, frames, channels) == 0) {
                         "Native DSP rejected an audio block."
+                    }
+                    // Optional mid/side stereo width processing. The test signal has a small
+                    // channel phase offset so widening is audible instead of mathematically
+                    // inert on perfectly identical mono channels.
+                    if (spatialEnabled) {
+                        val width = 1.6f
+                        for (frame in 0 until frames) {
+                            val index = frame * channels
+                            val left = floats.get(index)
+                            val right = floats.get(index + 1)
+                            val mid = (left + right) * 0.5f
+                            val side = (left - right) * 0.5f * width
+                            floats.put(index, (mid + side).coerceIn(-1.0f, 1.0f))
+                            floats.put(index + 1, (mid - side).coerceIn(-1.0f, 1.0f))
+                        }
                     }
                     // Output-stage peak limiter: keep the generated test tone below
                     // -0.9 dBFS with fast attack and gradual release. It operates on

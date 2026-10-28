@@ -26,9 +26,10 @@ Java_dev_coreeq_audio_CoreEqAudioPlugin_nativeProcess(
     return CORE_EQ_STATUS_INVALID_ARGUMENT;
   }
   auto* samples = static_cast<float*>(env->GetDirectBufferAddress(pcm));
-  const jlong capacity = env->GetDirectBufferCapacity(pcm);
-  const jlong required = static_cast<jlong>(frames) * channels;
-  if (samples == nullptr || capacity < required) {
+  const jlong capacity_bytes = env->GetDirectBufferCapacity(pcm);
+  const jlong required_bytes =
+      static_cast<jlong>(frames) * channels * static_cast<jlong>(sizeof(float));
+  if (samples == nullptr || capacity_bytes < required_bytes) {
     return CORE_EQ_STATUS_INVALID_ARGUMENT;
   }
   return static_cast<jint>(

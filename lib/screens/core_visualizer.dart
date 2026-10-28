@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../engine/core_eq_control_mapper.dart';
+import '../engine/core_eq_android_audio.dart';
 import '../widgets/core_eq_test_tone_panel.dart';
 
 const _bg = Color(0xFF090B0E);
@@ -23,6 +24,7 @@ class _CoreVisualizerScreenState extends State<CoreVisualizerScreen>
   late final AnimationController _motion = AnimationController(
     vsync: this, duration: const Duration(seconds: 14),
   )..repeat();
+  final CoreEqAndroidAudio _audio = CoreEqAndroidAudio();
   int _preset = 0;
   bool _bassBoost = false;
   bool _limiter = true;
@@ -37,6 +39,22 @@ class _CoreVisualizerScreenState extends State<CoreVisualizerScreen>
 
   @override
   void dispose() { _motion.dispose(); super.dispose(); }
+
+  Future<void> _safeNativeUpdate(Future<void> Function() update) async {
+    try { await update(); } catch (_) {
+      // Keep gestures responsive if the Android platform channel is unavailable.
+    }
+  }
+
+  void _syncNativeSettings() {
+    for (var i = 0; i < _bands.length; i++) {
+      final band = i;
+      final gain = _bands[i];
+      _safeNativeUpdate(() => _audio.setBandGain(band, gain));
+    }
+    _safeNativeUpdate(() => _audio.setOutputGain(_volume));
+    _safeNativeUpdate(() => _audio.setBypassed(_bypass));
+  }
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -161,7 +179,7 @@ class _CoreVisualizerScreenState extends State<CoreVisualizerScreen>
         final selected = _preset == i;
         return InkWell(
           borderRadius: BorderRadius.circular(18),
-          onTap: () => setState(() {
+          onTap: () { setState(() {
             _preset = i;
             final curve = CoreEqControlMapper.presetGainsDb[_presets[i]]!;
             for (var j = 0; j < _bands.length; j++) {
@@ -169,7 +187,9 @@ class _CoreVisualizerScreenState extends State<CoreVisualizerScreen>
             }
             _bass = i == 1 ? 6 : 0;
             _bassBoost = i == 1;
-          }),
+          });
+          _syncNativeSettings();
+        },
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 160),
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -212,7 +232,7 @@ class _CoreVisualizerScreenState extends State<CoreVisualizerScreen>
                     thumbColor: _text, overlayShape: SliderComponentShape.noOverlay,
                     thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 5),
                   ),
-                  child: Slider(value: _bands[i], min: -12, max: 12, onChanged: (v) => setState(() { _bands[i] = v; _preset = 0; })),
+                  child: Slider(value: _bands[i], min: -12, max: 12, onChanged: (v) { setState(() { _bands[i] = v; _preset = 0; }); _safeNativeUpdate(() => _audio.setBandGain(i, v)); }),
                 ),
               )),
               const SizedBox(height: 4),
@@ -230,7 +250,7 @@ class _CoreVisualizerScreenState extends State<CoreVisualizerScreen>
       const Divider(color: _line, height: 18),
       _toggleRow(Icons.spatial_audio_rounded, 'SPATIAL AUDIO', 'Wider stereo presentation', _spatial, (v) => setState(() => _spatial = v)),
       const Divider(color: _line, height: 18),
-      _sliderRow('Output level', _volume, -24, 6, (v) => setState(() => _volume = v), suffix: ' dB'),
+      _sliderRow('Output level', _volume, -24, 6, (v) { setState(() => _volume = v); _safeNativeUpdate(() => _audio.setOutputGain(v)); }, suffix: ' dB'),
     ])),
     const SizedBox(height: 12),
     _panel(child: Row(children: [
@@ -239,11 +259,11 @@ class _CoreVisualizerScreenState extends State<CoreVisualizerScreen>
       const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text('PROCESSING ENGINE', style: TextStyle(color: _text, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: .5)),
         SizedBox(height: 4),
-        Text('Native engine controls are not loaded by this screen yet.', style: TextStyle(color: _muted, fontSize: 10, height: 1.4)),
+        Text('10-band EQ, output gain and bypass are sent to the Android test-tone DSP. Other controls remain UI-only.', style: TextStyle(color: _muted, fontSize: 10, height: 1.4)),
       ])),
     ])),
     const SizedBox(height: 12),
-    const CoreEqTestTonePanel(),
+    CoreEqTestTonePanel(audio: _audio),
   ]);
 
   Widget _sliderRow(String label, double value, double min, double max, ValueChanged<double> changed, {String suffix = ''}) =>
@@ -282,7 +302,7 @@ class _CoreVisualizerScreenState extends State<CoreVisualizerScreen>
           padding: const EdgeInsets.symmetric(vertical: 14),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
         ),
-        onPressed: () => setState(() => _bypass = !_bypass),
+        onPressed: () { setState(() => _bypass = !_bypass); _safeNativeUpdate(() => _audio.setBypassed(_bypass)); },
         icon: Icon(_bypass ? Icons.pause_circle_outline_rounded : Icons.play_circle_outline_rounded, size: 19),
         label: Text(_bypass ? 'BYPASS SELECTED' : 'BYPASS', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: .8)),
       )),
@@ -293,10 +313,13 @@ class _CoreVisualizerScreenState extends State<CoreVisualizerScreen>
           padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 17),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
         ),
-        onPressed: () => setState(() {
-          _preset = 0; _bassBoost = false; _limiter = true; _spatial = false; _bypass = false; _bass = 0; _volume = 0;
-          for (var i = 0; i < _bands.length; i++) { _bands[i] = 0; }
-        }),
+        onPressed: () {
+          setState(() {
+            _preset = 0; _bassBoost = false; _limiter = true; _spatial = false; _bypass = false; _bass = 0; _volume = 0;
+            for (var i = 0; i < _bands.length; i++) { _bands[i] = 0; }
+          });
+          _syncNativeSettings();
+        },
         child: const Text('RESET ALL', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800)),
       ),
     ]),

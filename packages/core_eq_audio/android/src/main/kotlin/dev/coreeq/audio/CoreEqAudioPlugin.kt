@@ -159,6 +159,9 @@ class CoreEqAudioPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
         track = audioTrack
         running = true
         lastError = null
+        // A new playback session starts with unity limiter gain; never carry
+        // attenuation from a previous session into the next test tone.
+        limiterGain = 1.0f
         worker = Thread({
             var phase = 0.0
             val step = 2.0 * PI * 440.0 / sampleRate

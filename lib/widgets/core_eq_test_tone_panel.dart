@@ -53,7 +53,7 @@ class _CoreEqTestTonePanelState extends State<CoreEqTestTonePanel> {
   void dispose() {
     // Best-effort shutdown if the widget is removed while playback is active.
     if (_running) {
-      _audio.stop().catchError((Object _) {});
+      _audio.stop().then<void>((_) {}, onError: (Object _) {});
     }
     super.dispose();
   }

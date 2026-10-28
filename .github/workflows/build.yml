@@ -26,6 +26,8 @@ jobs:
           channel: stable
       - name: Generate Android runner scaffold
         run: flutter create --platforms=android --project-name core_eq .
+      - name: Apply CORE-EQ Android launcher branding
+        run: bash scripts/apply_android_branding.sh
       - name: Resolve dependencies
         run: flutter pub get
       - name: Run tests

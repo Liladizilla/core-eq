@@ -24,6 +24,7 @@ class _CoreEqTestTonePanelState extends State<CoreEqTestTonePanel> {
   CoreEqAndroidAudio get _audio => widget.audio;
   bool _running = false;
   bool _busy = false;
+  int _frequencyHz = 440;
   String? _error;
 
   Future<void> _toggle() async {
@@ -32,7 +33,7 @@ class _CoreEqTestTonePanelState extends State<CoreEqTestTonePanel> {
     try {
       final status = _running
           ? await _audio.stop()
-          : await _audio.startTestTone();
+          : await _audio.startTestTone(frequencyHz: _frequencyHz);
       if (!mounted) return;
       setState(() {
         _running = status.running;
@@ -77,9 +78,27 @@ class _CoreEqTestTonePanelState extends State<CoreEqTestTonePanel> {
       const SizedBox(height: 7),
       Text(
         _running
-            ? 'Generated 440 Hz tone is playing through the native DSP.'
-            : 'Play a generated 440 Hz tone through the native DSP and Android output.',
+            ? 'Generated $_frequencyHz Hz tone is playing through the native DSP.'
+            : 'Play a selected test tone through native DSP and Android output.',
         style: const TextStyle(color: _panelMuted, fontSize: 10, height: 1.5),
+      ),
+      const SizedBox(height: 12),
+      DropdownButtonFormField<int>(
+        value: _frequencyHz,
+        dropdownColor: _panelBg,
+        decoration: const InputDecoration(
+          labelText: 'TEST FREQUENCY',
+          labelStyle: TextStyle(color: _panelMuted, fontSize: 10),
+          enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: _panelLine)),
+          focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: _panelCyan)),
+        ),
+        style: const TextStyle(color: _panelText, fontSize: 13),
+        items: const [32, 64, 125, 250, 440, 1000].map((hz) => DropdownMenuItem<int>(
+          value: hz, child: Text('$hz Hz'),
+        )).toList(),
+        onChanged: _running || _busy ? null : (hz) {
+          if (hz != null) setState(() => _frequencyHz = hz);
+        },
       ),
       const SizedBox(height: 12),
       SizedBox(

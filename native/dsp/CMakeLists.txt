@@ -6,7 +6,12 @@ target_include_directories(core_eq_dsp PUBLIC include)
 target_compile_features(core_eq_dsp PUBLIC cxx_std_17)
 set_target_properties(core_eq_dsp PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
-add_library(core_eq_c SHARED src/c_api.cpp)
+set(CORE_EQ_C_SOURCES src/c_api.cpp)
+if(ANDROID)
+  list(APPEND CORE_EQ_C_SOURCES src/android_jni.cpp)
+endif()
+
+add_library(core_eq_c SHARED ${CORE_EQ_C_SOURCES})
 target_include_directories(core_eq_c PUBLIC include)
 target_link_libraries(core_eq_c PRIVATE core_eq_dsp)
 target_compile_features(core_eq_c PUBLIC cxx_std_17)

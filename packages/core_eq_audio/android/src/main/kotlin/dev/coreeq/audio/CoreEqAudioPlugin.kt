@@ -23,6 +23,7 @@ class CoreEqAudioPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
     private var track: AudioTrack? = null
     private var engine: Long = 0L
     private var lastError: String? = null
+    @Volatile private var toneFrequencyHz = 440
     // Preserve controls while stopped and restore them into each new native session.
     private val bandGainsDb = FloatArray(10) { 0.0f }
     @Volatile private var outputGainDb = 0.0f
@@ -40,9 +41,14 @@ class CoreEqAudioPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
         when (call.method) {
             "startTestTone" -> {
+                val frequencyHz = call.argument<Int>("frequencyHz") ?: 440
+                if (frequencyHz !in setOf(32, 64, 125, 250, 440, 1000)) {
+                    result.error("INVALID_TONE_FREQUENCY", "Choose 32, 64, 125, 250, 440, or 1000 Hz.", null)
+                    return
+                }
                 if (running) { result.success(status()); return }
                 try {
-                    startPlayback()
+                    startPlayback(frequencyHz)
                     result.success(status())
                 } catch (e: Exception) {
                     lastError = e.message ?: e.javaClass.simpleName
@@ -113,7 +119,8 @@ class CoreEqAudioPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
     }
 
     @Synchronized
-    private fun startPlayback() {
+    private fun startPlayback(frequencyHz: Int) {
+        toneFrequencyHz = frequencyHz
         check(Build.VERSION.SDK_INT >= 23) { "Generated float-PCM playback requires Android 6.0 or newer." }
         check(!running) { "Playback is already running." }
         System.loadLibrary("core_eq")
@@ -174,7 +181,7 @@ class CoreEqAudioPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
         limiterGain = 1.0f
         worker = Thread({
             var phase = 0.0
-            val step = 2.0 * PI * 440.0 / sampleRate
+            val step = 2.0 * PI * toneFrequencyHz / sampleRate
             try {
                 audioTrack.play()
                 while (running) {
@@ -270,6 +277,7 @@ class CoreEqAudioPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
         "sampleRateHz" to 48000,
         "channels" to 2,
         "source" to "generated_test_tone",
+        "frequencyHz" to toneFrequencyHz,
         "peakLevel" to if (engine != 0L) nativeGetPeakLevel(engine).coerceIn(0.0f, 1.0f) else 0.0f,
         "error" to lastError
     )

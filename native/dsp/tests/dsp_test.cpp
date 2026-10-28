@@ -2,7 +2,8 @@
 #include <cmath>
 #include <cstdlib>
 #include <iostream>
-#include <limits>\n#include <algorithm>
+#include <limits>
+#include <algorithm>
 #include <vector>
 
 int main() {

@@ -313,11 +313,13 @@ class _CoreVisualizerScreenState extends State<CoreVisualizerScreen>
           padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 17),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
         ),
-        onPressed: () => setState(() {
-          _preset = 0; _bassBoost = false; _limiter = true; _spatial = false; _bypass = false; _bass = 0; _volume = 0;
-          for (var i = 0; i < _bands.length; i++) { _bands[i] = 0; }
-        });
-        _syncNativeSettings();
+        onPressed: () {
+          setState(() {
+            _preset = 0; _bassBoost = false; _limiter = true; _spatial = false; _bypass = false; _bass = 0; _volume = 0;
+            for (var i = 0; i < _bands.length; i++) { _bands[i] = 0; }
+          });
+          _syncNativeSettings();
+        },
         child: const Text('RESET ALL', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800)),
       ),
     ]),

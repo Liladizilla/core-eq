@@ -78,6 +78,10 @@ final class CoreEqAndroidAudio {
     await _channel.invokeMethod<void>('setOutputGain', {'gainDb': gainDb});
   }
 
+  Future<void> setLimiterEnabled(bool enabled) async {
+    await _channel.invokeMethod<void>('setLimiterEnabled', {'enabled': enabled});
+  }
+
   Future<void> setBypassed(bool bypassed) async {
     await _channel.invokeMethod<void>('setBypassed', {'bypassed': bypassed});
   }

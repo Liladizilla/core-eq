@@ -33,6 +33,8 @@ class _CoreVisualizerScreenState extends State<CoreVisualizerScreen>
   double _bass = 0;
   double _volume = 0;
   final List<double> _bands = List<double>.filled(10, 0);
+  Future<void> _nativeUpdates = Future<void>.value();
+  String? _nativeControlError;
 
   static const _presets = ['Flat', 'Bass', 'Vocal', 'Rock', 'Podcast'];
   static const _frequencies = ['32', '64', '125', '250', '500', '1k', '2k', '4k', '8k', '16k'];
@@ -40,20 +42,30 @@ class _CoreVisualizerScreenState extends State<CoreVisualizerScreen>
   @override
   void dispose() { _motion.dispose(); super.dispose(); }
 
-  Future<void> _safeNativeUpdate(Future<void> Function() update) async {
-    try { await update(); } catch (_) {
-      // Keep gestures responsive if the Android platform channel is unavailable.
-    }
-  }
-
   void _syncNativeSettings() {
-    for (var i = 0; i < _bands.length; i++) {
-      final band = i;
-      final gain = _bands[i];
-      _safeNativeUpdate(() => _audio.setBandGain(band, gain));
-    }
-    _safeNativeUpdate(() => _audio.setOutputGain(_volume));
-    _safeNativeUpdate(() => _audio.setBypassed(_bypass));
+    // Snapshot the latest UI state and serialize updates to respect the native
+    // DSP's single-producer parameter queue. Older snapshots may finish first,
+    // but the newest snapshot is always applied last.
+    final gains = List<double>.of(_bands);
+    final outputGain = _volume;
+    final bypassed = _bypass;
+    _nativeUpdates = _nativeUpdates.catchError((Object _) {}).then((_) async {
+      try {
+        for (var i = 0; i < gains.length; i++) {
+          await _audio.setBandGain(i, gains[i]);
+        }
+        await _audio.setOutputGain(outputGain);
+        await _audio.setBypassed(bypassed);
+        if (mounted && _nativeControlError != null) {
+          setState(() => _nativeControlError = null);
+        }
+      } catch (error) {
+        if (mounted) {
+          setState(() => _nativeControlError =
+              'Native DSP update failed. Stop the test tone, then retry. ($error)');
+        }
+      }
+    });
   }
 
   @override
@@ -232,7 +244,7 @@ class _CoreVisualizerScreenState extends State<CoreVisualizerScreen>
                     thumbColor: _text, overlayShape: SliderComponentShape.noOverlay,
                     thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 5),
                   ),
-                  child: Slider(value: _bands[i], min: -12, max: 12, onChanged: (v) { setState(() { _bands[i] = v; _preset = 0; }); _safeNativeUpdate(() => _audio.setBandGain(i, v)); }),
+                  child: Slider(value: _bands[i], min: -12, max: 12, onChanged: (v) { setState(() { _bands[i] = v; _preset = 0; }); _syncNativeSettings(); }),
                 ),
               )),
               const SizedBox(height: 4),
@@ -250,9 +262,18 @@ class _CoreVisualizerScreenState extends State<CoreVisualizerScreen>
       const Divider(color: _line, height: 18),
       _toggleRow(Icons.spatial_audio_rounded, 'SPATIAL AUDIO', 'Wider stereo presentation', _spatial, (v) => setState(() => _spatial = v)),
       const Divider(color: _line, height: 18),
-      _sliderRow('Output level', _volume, -24, 6, (v) { setState(() => _volume = v); _safeNativeUpdate(() => _audio.setOutputGain(v)); }, suffix: ' dB'),
+      _sliderRow('Output level', _volume, -24, 6, (v) { setState(() => _volume = v); _syncNativeSettings(); }, suffix: ' dB'),
     ])),
     const SizedBox(height: 12),
+    if (_nativeControlError != null) ...[
+      _panel(child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const Icon(Icons.warning_amber_rounded, color: _amber, size: 18),
+        const SizedBox(width: 9),
+        Expanded(child: Text(_nativeControlError!, style: const TextStyle(color: _amber, fontSize: 10, height: 1.4))),
+        TextButton(onPressed: _syncNativeSettings, child: const Text('RETRY', style: TextStyle(color: _cyan, fontSize: 10))),
+      ])),
+      const SizedBox(height: 12),
+    ],
     _panel(child: Row(children: [
       const Icon(Icons.memory_rounded, color: _muted, size: 18),
       const SizedBox(width: 10),
@@ -302,7 +323,7 @@ class _CoreVisualizerScreenState extends State<CoreVisualizerScreen>
           padding: const EdgeInsets.symmetric(vertical: 14),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
         ),
-        onPressed: () { setState(() => _bypass = !_bypass); _safeNativeUpdate(() => _audio.setBypassed(_bypass)); },
+        onPressed: () { setState(() => _bypass = !_bypass); _syncNativeSettings(); },
         icon: Icon(_bypass ? Icons.pause_circle_outline_rounded : Icons.play_circle_outline_rounded, size: 19),
         label: Text(_bypass ? 'BYPASS SELECTED' : 'BYPASS', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: .8)),
       )),

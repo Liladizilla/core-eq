@@ -110,6 +110,7 @@ class _CoreVisualizerScreenState extends State<CoreVisualizerScreen>
         final outputGain = _volume;
         final bypassed = _bypass;
         final limiterEnabled = _limiter;
+        final spatialEnabled = _spatial;
         try {
           for (var i = 0; i < gains.length; i++) {
             await _audio.setBandGain(i, gains[i]);
@@ -117,6 +118,7 @@ class _CoreVisualizerScreenState extends State<CoreVisualizerScreen>
           await _audio.setOutputGain(outputGain);
           await _audio.setBypassed(bypassed);
           await _audio.setLimiterEnabled(limiterEnabled);
+          await _audio.setSpatialEnabled(spatialEnabled);
           if (mounted && _nativeControlError != null) {
             setState(() => _nativeControlError = null);
           }
@@ -347,7 +349,7 @@ class _CoreVisualizerScreenState extends State<CoreVisualizerScreen>
     _panel(child: Column(children: [
       _toggleRow(Icons.shield_outlined, 'LIMITER', 'Limit generated-tone output peaks', _limiter, (v) { setState(() => _limiter = v); _syncNativeSettings(); }),
       const Divider(color: _line, height: 18),
-      _toggleRow(Icons.spatial_audio_rounded, 'SPATIAL AUDIO', 'Wider stereo presentation', _spatial, (v) => setState(() => _spatial = v)),
+      _toggleRow(Icons.spatial_audio_rounded, 'SPATIAL AUDIO', 'Mid/side widening on generated test tone', _spatial, (v) { setState(() => _spatial = v); _syncNativeSettings(); }),
       const Divider(color: _line, height: 18),
       _sliderRow('Output level', _volume, -24, 6, (v) { setState(() => _volume = v); _syncNativeSettings(); }, suffix: ' dB'),
     ])),
@@ -367,7 +369,7 @@ class _CoreVisualizerScreenState extends State<CoreVisualizerScreen>
       const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text('PROCESSING ENGINE', style: TextStyle(color: _text, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: .5)),
         SizedBox(height: 4),
-        Text('10-band EQ, bass boost, output gain and bypass run through native DSP. The limiter processes the generated-tone PCM output; spatial audio remains UI-only. Microphone and system audio are not connected.', style: TextStyle(color: _muted, fontSize: 10, height: 1.4)),
+        Text('10-band EQ, bass boost, output gain and bypass run through native DSP. Limiting and mid/side stereo widening process generated-tone PCM only. Microphone and system audio are not connected.', style: TextStyle(color: _muted, fontSize: 10, height: 1.4)),
       ])),
     ])),
     const SizedBox(height: 12),

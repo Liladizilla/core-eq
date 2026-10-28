@@ -78,6 +78,10 @@ final class CoreEqAndroidAudio {
     await _channel.invokeMethod<void>('setOutputGain', {'gainDb': gainDb});
   }
 
+  Future<void> setSpatialEnabled(bool enabled) async {
+    await _channel.invokeMethod<void>('setSpatialEnabled', {'enabled': enabled});
+  }
+
   Future<void> setLimiterEnabled(bool enabled) async {
     await _channel.invokeMethod<void>('setLimiterEnabled', {'enabled': enabled});
   }

@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:core_eq/engine/core_eq_android_audio.dart';
 
@@ -61,4 +62,25 @@ void main() {
       expect(status.error, 'AudioTrack initialization failed.');
     });
   });
+  test('forwards spatial enablement to the Android audio channel', () async {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    const channel = MethodChannel('core_eq_audio_test');
+    final calls = <MethodCall>[];
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+      calls.add(call);
+      return null;
+    });
+
+    final audio = CoreEqAndroidAudio(channel: channel);
+    await audio.setSpatialEnabled(true);
+
+    expect(calls, hasLength(1));
+    expect(calls.single.method, 'setSpatialEnabled');
+    expect(calls.single.arguments, {'enabled': true});
+
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, null);
+  });
+
 }

@@ -40,6 +40,9 @@ final class CoreEqPcmProbeResult {
 final class CoreEqPcmProbe {
   const CoreEqPcmProbe._();
 
+  /// Caps diagnostics at ten seconds of 48 kHz audio to bound native memory.
+  static const int maxFrames = 480000;
+
   static CoreEqPcmProbeResult run(
     CoreEqEngineSession session, {
     int frames = 4800,
@@ -48,8 +51,8 @@ final class CoreEqPcmProbe {
     double frequencyHz = 1000,
     double amplitude = 0.5,
   }) {
-    if (frames <= 0 || (channels != 1 && channels != 2)) {
-      throw ArgumentError('frames must be positive and channels must be 1 or 2.');
+    if (frames <= 0 || frames > maxFrames || (channels != 1 && channels != 2)) {
+      throw ArgumentError('frames must be between 1 and $maxFrames and channels must be 1 or 2.');
     }
     if (!sampleRateHz.isFinite ||
         !frequencyHz.isFinite ||
@@ -118,6 +121,7 @@ final class CoreEqPcmProbe {
   }) {
     if (pcm == nullptr ||
         frames <= 0 ||
+        frames > maxFrames ||
         (channels != 1 && channels != 2) ||
         !sampleRateHz.isFinite ||
         !frequencyHz.isFinite ||

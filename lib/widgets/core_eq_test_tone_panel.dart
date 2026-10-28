@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../engine/core_eq_android_audio.dart';
 
 const _panelBg = Color(0xFF12161B);

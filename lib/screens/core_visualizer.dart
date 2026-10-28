@@ -227,7 +227,13 @@ class _CoreVisualizerScreenState extends State<CoreVisualizerScreen>
       const Divider(color: _line, height: 22),
       Row(children: [
         const Expanded(child: Text('GRAPHIC EQUALIZER', style: TextStyle(color: _text, fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: .5))),
-        TextButton(onPressed: () => setState(() { for (var i = 0; i < _bands.length; i++) { _bands[i] = 0; } _preset = 0; }), child: const Text('RESET', style: TextStyle(color: _cyan, fontSize: 10))),
+        TextButton(onPressed: () {
+          setState(() {
+            for (var i = 0; i < _bands.length; i++) { _bands[i] = 0; }
+            _preset = 0;
+          });
+          _syncNativeSettings();
+        }, child: const Text('RESET', style: TextStyle(color: _cyan, fontSize: 10))),
       ]),
       const SizedBox(height: 8),
       SizedBox(

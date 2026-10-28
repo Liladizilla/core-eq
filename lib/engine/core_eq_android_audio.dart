@@ -9,6 +9,7 @@ final class CoreEqAndroidAudioStatus {
     required this.sampleRateHz,
     required this.channels,
     required this.source,
+    this.frequencyHz = 440,
     required this.peakLevel,
     this.error,
   });

@@ -84,7 +84,6 @@ class CoreEqAudioPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
                     result.error("INVALID_EQ_PARAMETER", "Limiter enabled must be a boolean.", null)
                 } else {
                     limiterEnabled = enabled
-                    if (!enabled) limiterGain = 1.0f
                     result.success(null)
                 }
             }

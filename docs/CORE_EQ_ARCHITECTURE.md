@@ -1,6 +1,8 @@
 # CORE-EQ Architecture Notes
 
-## Current milestone: Phase 3 / Android native packaging
+## Current milestone: Phase 4 / Native control and meter bindings
+
+The C++ DSP, C ABI, Dart FFI control surface, managed peak reads, and Android shared-library packaging are implemented and covered by CI. These milestones validate the processing API and library delivery, not live device audio. The next gate is a real in-app Android audio path with explicit lifecycle and route/error reporting.
 
 CORE-EQ is an independent repository. ZillaEQ is not a dependency and will not receive CORE-EQ implementation changes.
 
@@ -12,6 +14,25 @@ The Dart `CoreEqNative.openDefault()` factory resolves library names for support
 
 ### Prototype boundary
 The Flutter screen is still a presentation prototype. Its EQ curve, meters, preset values, bypass state, latency labels, and DSP load labels are not connected to device audio. Keep UI PREVIEW, NOT MEASURED, and NOT CONNECTED indicators until those values are backed by native engine telemetry.
+
+## Next integration gate: in-app Android audio
+
+Do not start by claiming system-wide processing. First build a narrow, testable in-app path:
+
+1. Add a platform-owned audio component with explicit `start` / `stop` lifecycle and visible permission/device errors.
+2. Prove native processing with a deterministic generated PCM signal before enabling microphone loopback. The test signal must pass through `core_eq_process`, and its output peak must come from `core_eq_get_peak_level`.
+3. Add real-time capture/playback only after the test-signal path is stable. Keep capture and playback buffers bounded, avoid feedback by default, and require an explicit user action before starting any microphone-to-output path.
+4. Keep all platform calls outside the C++ render callback. Serialize parameter writes and stop/join processing before destroying the native session.
+5. Show live-meter or connected status only while the processing path is actually running; show unavailable/error states otherwise.
+6. Record device/API-level limitations. Do not imply arbitrary other-app audio is captured; Android support varies and playback capture requires consent and is not universal.
+
+Acceptance checks for this gate:
+
+- Start and stop repeatedly without leaking the engine or leaving audio callbacks active.
+- Generated test PCM is measurably processed by the native engine, with peak readings matching the processed block.
+- Invalid device/session states are surfaced instead of silently falling back to an idle animation.
+- No PCM is sent through Flutter method channels or retained/transmitted.
+- Device-level checks document Android version, route, sample rate, channel count, and buffer size.
 
 ## Target architecture
 

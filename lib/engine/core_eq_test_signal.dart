@@ -63,7 +63,7 @@ final class CoreEqPcmProbe {
     }
 
     final sampleCount = frames * channels;
-    final pcm = calloc<Float>(sampleCount);
+    final pcm = calloc.allocate<Float>(sampleCount * sizeOf<Float>());
     try {
       generateSine(
         pcm,

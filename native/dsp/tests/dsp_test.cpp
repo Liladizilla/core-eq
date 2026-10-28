@@ -145,7 +145,9 @@ int main() {
   // actual post-processing peak rather than an unclipped intermediate value.
   core_eq::ParametricEq10 clipping;
   clipping.set_output_gain_db(12.0f);
-  std::vector<float> hot_signal = {0.95f, -0.95f, 0.5f, -0.5f};
+  std::vector<float> hot_signal(4096);
+  for (std::size_t i = 0; i < hot_signal.size(); ++i)
+    hot_signal[i] = (i % 2 == 0) ? 0.95f : -0.95f;
   clipping.process(hot_signal.data(), hot_signal.size(), 1);
   float maximum = 0.0f;
   for (float sample : hot_signal) {

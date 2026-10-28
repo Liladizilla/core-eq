@@ -1,6 +1,8 @@
 package dev.coreeq.audio
 
 import android.media.AudioAttributes
+import android.media.AudioFocusRequest
+import android.media.AudioManager
 import android.media.AudioFormat
 import android.media.AudioTrack
 import android.os.Build
@@ -17,10 +19,27 @@ import kotlin.math.sin
 /** Plays a generated test tone only; it does not capture microphone or other-app audio. */
 class CoreEqAudioPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
     private lateinit var channel: MethodChannel
+    private lateinit var appContext: android.content.Context
     private val mainHandler = Handler(Looper.getMainLooper())
     @Volatile private var running = false
     @Volatile private var worker: Thread? = null
     private var track: AudioTrack? = null
+    private var audioManager: AudioManager? = null
+    private var audioFocusRequest: AudioFocusRequest? = null
+    private var hasAudioFocus = false
+    private val audioFocusListener = AudioManager.OnAudioFocusChangeListener { change ->
+        when (change) {
+            AudioManager.AUDIOFOCUS_LOSS -> mainHandler.post {
+                lastError = "Audio focus lost; playback stopped."
+                stopPlayback()
+            }
+            AudioManager.AUDIOFOCUS_LOSS_TRANSIENT,
+            AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> mainHandler.post {
+                lastError = "Audio focus interrupted; playback stopped."
+                stopPlayback()
+            }
+        }
+    }
     private var engine: Long = 0L
     private var lastError: String? = null
     @Volatile private var toneFrequencyHz = 440
@@ -35,6 +54,7 @@ class CoreEqAudioPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
     private var limiterGain = 1.0f
 
     override fun onAttachedToEngine(binding: FlutterPlugin.FlutterPluginBinding) {
+        appContext = binding.applicationContext
         channel = MethodChannel(binding.binaryMessenger, "core_eq_audio")
         channel.setMethodCallHandler(this)
     }
@@ -124,12 +144,55 @@ class CoreEqAudioPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
         }
     }
 
+    private fun requestAudioFocus() {
+        val manager = appContext.getSystemService(android.content.Context.AUDIO_SERVICE) as AudioManager
+        audioManager = manager
+        val attributes = AudioAttributes.Builder()
+            .setUsage(AudioAttributes.USAGE_MEDIA)
+            .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+            .build()
+        val granted = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val request = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
+                .setAudioAttributes(attributes)
+                .setOnAudioFocusChangeListener(audioFocusListener)
+                .setWillPauseWhenDucked(true)
+                .build()
+            audioFocusRequest = request
+            manager.requestAudioFocus(request) == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
+        } else {
+            @Suppress("DEPRECATION")
+            manager.requestAudioFocus(
+                audioFocusListener,
+                AudioManager.STREAM_MUSIC,
+                AudioManager.AUDIOFOCUS_GAIN
+            ) == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
+        }
+        check(granted) { "Audio focus was denied by Android." }
+        hasAudioFocus = true
+    }
+
+    private fun abandonAudioFocus() {
+        if (!hasAudioFocus) return
+        val manager = audioManager
+        if (manager != null) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                audioFocusRequest?.let { manager.abandonAudioFocusRequest(it) }
+            } else {
+                @Suppress("DEPRECATION")
+                manager.abandonAudioFocus(audioFocusListener)
+            }
+        }
+        audioFocusRequest = null
+        hasAudioFocus = false
+    }
+
     @Synchronized
     private fun startPlayback(frequencyHz: Int, amplitude: Float) {
         toneFrequencyHz = frequencyHz
         toneAmplitude = amplitude
         check(Build.VERSION.SDK_INT >= 23) { "Generated float-PCM playback requires Android 6.0 or newer." }
         check(!running) { "Playback is already running." }
+        requestAudioFocus()
         System.loadLibrary("core_eq")
         engine = nativeCreate()
         check(engine != 0L) { "Native CORE-EQ engine allocation failed." }
@@ -273,6 +336,7 @@ class CoreEqAudioPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
         worker = null
         audioTrack?.release()
         track = null
+        abandonAudioFocus()
         if (engine != 0L) {
             nativeDestroy(engine)
             engine = 0L

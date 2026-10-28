@@ -74,6 +74,54 @@ int main() {
   }
   core_eq_destroy(queue_handle);
 
+  // Processing the same stream in differently sized blocks must preserve
+  // filter history and produce the same samples. This is the core contract
+  // needed by a future decoded-PCM player feeding native DSP incrementally.
+  core_eq_handle* whole_handle = core_eq_create();
+  core_eq_handle* chunked_handle = core_eq_create();
+  if (whole_handle == nullptr || chunked_handle == nullptr) return EXIT_FAILURE;
+  for (core_eq_handle* current : {whole_handle, chunked_handle}) {
+    if (core_eq_configure_band(current, 0, 1000.0f, 0.9f, 5.0f, 48000.0f) != CORE_EQ_STATUS_OK ||
+        core_eq_configure_band(current, 3, 250.0f, 1.2f, -3.0f, 48000.0f) != CORE_EQ_STATUS_OK ||
+        core_eq_set_input_gain_db(current, -1.5f) != CORE_EQ_STATUS_OK ||
+        core_eq_set_output_gain_db(current, 1.0f) != CORE_EQ_STATUS_OK) {
+      return EXIT_FAILURE;
+    }
+  }
+  constexpr std::size_t stream_frames = 1024;
+  std::vector<float> whole_stream(stream_frames * 2);
+  for (std::size_t i = 0; i < whole_stream.size(); ++i) {
+    whole_stream[i] = 0.2f * std::sin(
+        2.0f * 3.14159265358979323846f * 997.0f * (i / 2) / 48000.0f +
+        ((i % 2) ? 0.03f : 0.0f));
+  }
+  std::vector<float> chunked_stream = whole_stream;
+  if (core_eq_process(whole_handle, whole_stream.data(), stream_frames, 2) != CORE_EQ_STATUS_OK) {
+    return EXIT_FAILURE;
+  }
+  const std::size_t chunks[] = {1, 137, 256, 17, 401, 212};
+  std::size_t frame_offset = 0;
+  for (const std::size_t chunk_frames : chunks) {
+    if (core_eq_process(chunked_handle, chunked_stream.data() + frame_offset * 2,
+                        chunk_frames, 2) != CORE_EQ_STATUS_OK) {
+      return EXIT_FAILURE;
+    }
+    frame_offset += chunk_frames;
+  }
+  if (frame_offset != stream_frames) {
+    std::cerr << "Streaming test chunks do not cover the entire signal\n";
+    return EXIT_FAILURE;
+  }
+  for (std::size_t i = 0; i < whole_stream.size(); ++i) {
+    if (!std::isfinite(whole_stream[i]) || !std::isfinite(chunked_stream[i]) ||
+        std::abs(whole_stream[i] - chunked_stream[i]) > 1.0e-6f) {
+      std::cerr << "PCM output changed across processing block boundaries\n";
+      return EXIT_FAILURE;
+    }
+  }
+  core_eq_destroy(whole_handle);
+  core_eq_destroy(chunked_handle);
+
   std::cout << "CORE-EQ C ABI tests passed\n";
   return EXIT_SUCCESS;
 }

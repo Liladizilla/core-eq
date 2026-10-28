@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../engine/core_eq_control_mapper.dart';
@@ -25,6 +26,10 @@ class _CoreVisualizerScreenState extends State<CoreVisualizerScreen>
     vsync: this, duration: const Duration(seconds: 14),
   )..repeat();
   final CoreEqAndroidAudio _audio = CoreEqAndroidAudio();
+  Timer? _statusTimer;
+  bool _toneRunning = false;
+  bool _statusReadRunning = false;
+  double _peakLevel = 0;
   int _preset = 0;
   bool _bassBoost = false;
   bool _limiter = true;
@@ -41,7 +46,41 @@ class _CoreVisualizerScreenState extends State<CoreVisualizerScreen>
   static const _frequencies = ['32', '64', '125', '250', '500', '1k', '2k', '4k', '8k', '16k'];
 
   @override
-  void dispose() { _motion.dispose(); super.dispose(); }
+  void initState() {
+    super.initState();
+    _statusTimer = Timer.periodic(
+      const Duration(milliseconds: 160),
+      (_) => _refreshAudioStatus(),
+    );
+  }
+
+  Future<void> _refreshAudioStatus() async {
+    if (_statusReadRunning) return;
+    _statusReadRunning = true;
+    try {
+      final status = await _audio.readStatus();
+      if (!mounted) return;
+      final peak = status.running ? status.peakLevel : 0.0;
+      if (_toneRunning != status.running || (_peakLevel - peak).abs() >= 0.015) {
+        setState(() {
+          _toneRunning = status.running;
+          _peakLevel = peak;
+        });
+      }
+    } catch (_) {
+      // The platform channel may be unavailable on desktop or in widget tests.
+      // Keep the explicit offline state rather than inventing signal data.
+    } finally {
+      _statusReadRunning = false;
+    }
+  }
+
+  @override
+  void dispose() {
+    _statusTimer?.cancel();
+    _motion.dispose();
+    super.dispose();
+  }
 
   void _syncNativeSettings() {
     // Coalesce rapid slider/preset changes instead of queuing a complete stale
@@ -179,9 +218,9 @@ class _CoreVisualizerScreenState extends State<CoreVisualizerScreen>
           builder: (context, _) => CustomPaint(
             painter: _FieldPainter(
               phase: _motion.value * math.pi * 2,
-              intensity: _bypass ? 0.12 : (0.28 + _bass.abs() / 20),
+              intensity: _toneRunning && !_bypass ? 0.15 + _peakLevel * 1.5 : 0.0,
               spatial: _spatial,
-              active: false,
+              active: _toneRunning && !_bypass,
             ),
           ),
         ),
@@ -190,12 +229,14 @@ class _CoreVisualizerScreenState extends State<CoreVisualizerScreen>
       Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(color: _bg, borderRadius: BorderRadius.circular(13)),
-        child: const Row(children: [
-          Icon(Icons.info_outline_rounded, color: _amber, size: 15),
-          SizedBox(width: 8),
+        child: Row(children: [
+          const Icon(Icons.info_outline_rounded, color: _amber, size: 15),
+          const SizedBox(width: 8),
           Expanded(child: Text(
-            'No audio stream connected. The field is an idle animation, not live audio analysis.',
-            style: TextStyle(color: _muted, fontSize: 10, height: 1.4),
+            _toneRunning
+                ? 'Generated test tone active. Field intensity follows the native DSP peak; microphone and system audio are not connected.'
+                : 'No audio stream connected. Start the generated test tone to drive the field from native DSP measurements.',
+            style: const TextStyle(color: _muted, fontSize: 10, height: 1.4),
           )),
         ]),
       ),
@@ -429,7 +470,7 @@ class _FieldPainter extends CustomPainter {
     )..layout();
     label.paint(canvas, const Offset(3, 2));
     final status = TextPainter(
-      text: const TextSpan(text: 'AWAITING AUDIO INPUT', style: TextStyle(color: _muted, fontSize: 8, letterSpacing: 1)),
+      text: TextSpan(text: active ? 'NATIVE DSP / SIGNAL' : 'AWAITING AUDIO INPUT', style: const TextStyle(color: _muted, fontSize: 8, letterSpacing: 1)),
       textDirection: TextDirection.ltr,
     )..layout();
     status.paint(canvas, Offset(3, size.height - 14));

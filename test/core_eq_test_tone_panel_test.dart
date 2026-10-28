@@ -16,11 +16,12 @@ void main() {
 
   testWidgets('shows bounded level and frequency choices', (tester) async {
     await tester.pumpWidget(MaterialApp(
-      home: Scaffold(body: CoreEqTestTonePanel(
-        audio: CoreEqAndroidAudio(channel: channel),
-        androidPlatformOverride: true,
-        androidPlatformOverride: true,
-      )),
+      home: Scaffold(
+        body: CoreEqTestTonePanel(
+          audio: CoreEqAndroidAudio(channel: channel),
+          androidPlatformOverride: true,
+        ),
+      ),
     ));
 
     expect(find.text('ANDROID AUDIO TEST'), findsOneWidget);
@@ -38,13 +39,14 @@ void main() {
         .setMockMethodCallHandler(channel, (call) async {
       calls.add(call);
       if (call.method == 'startTestTone') {
+        final arguments = call.arguments as Map<Object?, Object?>;
         return <Object?, Object?>{
           'running': true,
           'sampleRateHz': 48000,
           'channels': 2,
           'source': 'generated_test_tone',
-          'frequencyHz': (call.arguments as Map<Object?, Object?>)['frequencyHz'],
-          'amplitude': (call.arguments as Map<Object?, Object?>)['amplitude'],
+          'frequencyHz': arguments['frequencyHz'],
+          'amplitude': arguments['amplitude'],
           'peakLevel': 0.06,
         };
       }
@@ -52,10 +54,12 @@ void main() {
     });
 
     await tester.pumpWidget(MaterialApp(
-      home: Scaffold(body: CoreEqTestTonePanel(
-        audio: CoreEqAndroidAudio(channel: channel),
-        androidPlatformOverride: true,
-      )),
+      home: Scaffold(
+        body: CoreEqTestTonePanel(
+          audio: CoreEqAndroidAudio(channel: channel),
+          androidPlatformOverride: true,
+        ),
+      ),
     ));
 
     await tester.tap(find.byType(DropdownButtonFormField<int>));
@@ -63,6 +67,7 @@ void main() {
     await tester.tap(find.text('125 Hz').last);
     await tester.pumpAndSettle();
 
+    await tester.ensureVisible(find.text('START TEST TONE'));
     await tester.tap(find.text('START TEST TONE'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 20));
@@ -77,15 +82,15 @@ void main() {
 
   testWidgets('disables playback outside Android', (tester) async {
     await tester.pumpWidget(MaterialApp(
-      home: Scaffold(body: CoreEqTestTonePanel(
-        audio: CoreEqAndroidAudio(channel: channel),
-        androidPlatformOverride: false,
-      )),
+      home: Scaffold(
+        body: CoreEqTestTonePanel(
+          audio: CoreEqAndroidAudio(channel: channel),
+          androidPlatformOverride: false,
+        ),
+      ),
     ));
 
-    final button = tester.widget<OutlinedButton>(
-      find.byType(OutlinedButton),
-    );
+    final button = tester.widget<OutlinedButton>(find.byType(OutlinedButton));
     expect(button.onPressed, isNull);
     expect(find.text('Android only. No audio is started on this platform.'), findsOneWidget);
   });

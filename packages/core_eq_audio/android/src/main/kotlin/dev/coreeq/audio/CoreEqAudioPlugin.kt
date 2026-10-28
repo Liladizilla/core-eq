@@ -28,15 +28,13 @@ class CoreEqAudioPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
     private var audioFocusRequest: AudioFocusRequest? = null
     private var hasAudioFocus = false
     private val audioFocusListener = AudioManager.OnAudioFocusChangeListener { change ->
-        if (change <= AudioManager.AUDIOFOCUS_LOSS) {
-            // Never continue generating audio after another app takes exclusive focus.
-            mainHandler.post {
+        when (change) {
+            AudioManager.AUDIOFOCUS_LOSS -> mainHandler.post {
                 lastError = "Audio focus lost; playback stopped."
                 stopPlayback()
             }
-        } else if (change == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT ||
-            change == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK) {
-            mainHandler.post {
+            AudioManager.AUDIOFOCUS_LOSS_TRANSIENT,
+            AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> mainHandler.post {
                 lastError = "Audio focus interrupted; playback stopped."
                 stopPlayback()
             }
@@ -147,10 +145,7 @@ class CoreEqAudioPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
     }
 
     private fun requestAudioFocus() {
-        val manager = channel.binaryMessenger.let {
-            // AudioManager is obtained from the Flutter plugin's application context.
-            appContext.getSystemService(AudioManager::class.java)
-        }
+        val manager = appContext.getSystemService(android.content.Context.AUDIO_SERVICE) as AudioManager
         audioManager = manager
         val attributes = AudioAttributes.Builder()
             .setUsage(AudioAttributes.USAGE_MEDIA)

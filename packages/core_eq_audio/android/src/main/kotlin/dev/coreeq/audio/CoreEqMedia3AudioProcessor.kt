@@ -13,7 +13,6 @@ import java.nio.ByteOrder
 class CoreEqMedia3AudioProcessor : BaseAudioProcessor() {
     private var engine: Long = 0L
     private var channels = 0
-    private var sampleRateHz = 0
     private var floatScratch: ByteBuffer = ByteBuffer.allocateDirect(0).order(ByteOrder.nativeOrder())
 
     init {
@@ -27,15 +26,16 @@ class CoreEqMedia3AudioProcessor : BaseAudioProcessor() {
             inputAudioFormat.encoding != C.ENCODING_PCM_16BIT) {
             throw AudioProcessor.UnhandledAudioFormatException(inputAudioFormat)
         }
-        sampleRateHz = inputAudioFormat.sampleRate
         channels = inputAudioFormat.channelCount
         return inputAudioFormat
     }
 
-    override fun onQueueInput(inputBuffer: ByteBuffer) {
+    override fun queueInput(inputBuffer: ByteBuffer) {
         val inputBytes = inputBuffer.remaining()
         if (inputBytes == 0) return
-        check(inputBytes % (channels * 2) == 0) { "Input buffer does not contain complete PCM frames." }
+        check(channels > 0 && inputBytes % (channels * 2) == 0) {
+            "Input buffer does not contain complete PCM frames."
+        }
         val samples = inputBytes / 2
         val frames = samples / channels
         val requiredFloatBytes = samples * 4
@@ -43,7 +43,7 @@ class CoreEqMedia3AudioProcessor : BaseAudioProcessor() {
             floatScratch = ByteBuffer.allocateDirect(requiredFloatBytes).order(ByteOrder.nativeOrder())
         }
         floatScratch.clear()
-        val input = inputBuffer.order(ByteOrder.LITTLE_ENDIAN)
+        val input = inputBuffer.duplicate().order(ByteOrder.LITTLE_ENDIAN)
         val floatView = floatScratch.asFloatBuffer()
         repeat(samples) { floatView.put(input.short / 32768.0f) }
         check(nativeProcess(engine, floatScratch, frames, channels) == 0) {
@@ -80,7 +80,6 @@ class CoreEqMedia3AudioProcessor : BaseAudioProcessor() {
         }
         floatScratch = ByteBuffer.allocateDirect(0).order(ByteOrder.nativeOrder())
         channels = 0
-        sampleRateHz = 0
     }
 
     private external fun nativeCreate(): Long

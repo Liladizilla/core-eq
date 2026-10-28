@@ -27,6 +27,12 @@ int main() {
   std::vector<float> samples(64, 0.25f);
   if (core_eq_process(handle, samples.data(), 32, 2) != CORE_EQ_STATUS_OK) return EXIT_FAILURE;
   for (float sample : samples) if (sample != 0.25f) return EXIT_FAILURE;
+  if (core_eq_get_peak_level(handle, &peak_level) != CORE_EQ_STATUS_OK ||
+      std::abs(peak_level - 0.25f) > 1.0e-6f) return EXIT_FAILURE;
+  std::vector<float> silence(64, 0.0f);
+  if (core_eq_process(handle, silence.data(), 32, 2) != CORE_EQ_STATUS_OK ||
+      core_eq_get_peak_level(handle, &peak_level) != CORE_EQ_STATUS_OK ||
+      peak_level != 0.0f) return EXIT_FAILURE;
 
   if (core_eq_set_bypassed(handle, 0) != CORE_EQ_STATUS_OK) return EXIT_FAILURE;
   if (core_eq_set_input_gain_db(handle, 3.0f) != CORE_EQ_STATUS_OK) return EXIT_FAILURE;

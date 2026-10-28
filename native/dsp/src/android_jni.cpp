@@ -1,5 +1,7 @@
 #include <jni.h>
 
+#include <cmath>
+
 #include <cstdint>
 
 #include "core_eq/c_api.h"
@@ -47,4 +49,39 @@ Java_dev_coreeq_audio_CoreEqAudioPlugin_nativeGetPeakLevel(
     return 0.0f;
   }
   return peak_level;
+}
+
+extern "C" JNIEXPORT jint JNICALL
+Java_dev_coreeq_audio_CoreEqAudioPlugin_nativeSetBandGain(
+    JNIEnv*, jobject, jlong raw_handle, jint band, jfloat gain_db) {
+  auto* handle = reinterpret_cast<core_eq_handle*>(raw_handle);
+  if (handle == nullptr || band < 0 || band >= 10 ||
+      !std::isfinite(gain_db) || gain_db < -12.0f || gain_db > 12.0f) {
+    return CORE_EQ_STATUS_INVALID_ARGUMENT;
+  }
+  constexpr float frequencies[] = {
+      32.0f, 64.0f, 125.0f, 250.0f, 500.0f,
+      1000.0f, 2000.0f, 4000.0f, 8000.0f, 16000.0f};
+  return static_cast<jint>(core_eq_configure_band(
+      handle, static_cast<uint32_t>(band), frequencies[band], 1.0f,
+      gain_db, 48000.0f));
+}
+
+extern "C" JNIEXPORT jint JNICALL
+Java_dev_coreeq_audio_CoreEqAudioPlugin_nativeSetOutputGain(
+    JNIEnv*, jobject, jlong raw_handle, jfloat gain_db) {
+  auto* handle = reinterpret_cast<core_eq_handle*>(raw_handle);
+  if (handle == nullptr || !std::isfinite(gain_db) ||
+      gain_db < -24.0f || gain_db > 6.0f) {
+    return CORE_EQ_STATUS_INVALID_ARGUMENT;
+  }
+  return static_cast<jint>(core_eq_set_output_gain_db(handle, gain_db));
+}
+
+extern "C" JNIEXPORT jint JNICALL
+Java_dev_coreeq_audio_CoreEqAudioPlugin_nativeSetBypassed(
+    JNIEnv*, jobject, jlong raw_handle, jboolean bypassed) {
+  auto* handle = reinterpret_cast<core_eq_handle*>(raw_handle);
+  if (handle == nullptr) return CORE_EQ_STATUS_INVALID_ARGUMENT;
+  return static_cast<jint>(core_eq_set_bypassed(handle, bypassed == JNI_TRUE ? 1 : 0));
 }

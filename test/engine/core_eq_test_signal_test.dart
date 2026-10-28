@@ -1,3 +1,5 @@
+import 'dart:ffi';
+
 import 'package:ffi/ffi.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:core_eq/engine/core_eq_test_signal.dart';
@@ -5,7 +7,7 @@ import 'package:core_eq/engine/core_eq_test_signal.dart';
 void main() {
   group('CoreEqPcmProbe.generateSine', () {
     test('writes deterministic interleaved stereo samples', () {
-      final pcm = calloc<Float>(8);
+      final pcm = calloc.allocate<Float>(8 * sizeOf<Float>());
       try {
         CoreEqPcmProbe.generateSine(
           pcm,
@@ -30,7 +32,7 @@ void main() {
     });
 
     test('rejects frequencies at or above Nyquist', () {
-      final pcm = calloc<Float>(2);
+      final pcm = calloc.allocate<Float>(2 * sizeOf<Float>());
       try {
         expect(
           () => CoreEqPcmProbe.generateSine(

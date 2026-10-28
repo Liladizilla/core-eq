@@ -1,0 +1,16 @@
+name: core_eq_audio
+description: Android generated-tone playback through the CORE-EQ native DSP.
+version: 0.1.0
+publish_to: none
+environment:
+  sdk: '>=3.4.0 <4.0.0'
+  flutter: '>=3.22.0'
+dependencies:
+  flutter:
+    sdk: flutter
+flutter:
+  plugin:
+    platforms:
+      android:
+        package: dev.coreeq.audio
+        pluginClass: CoreEqAudioPlugin

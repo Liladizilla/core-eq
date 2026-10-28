@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../engine/core_eq_control_mapper.dart';
+import '../widgets/core_eq_test_tone_panel.dart';
 
 const _bg = Color(0xFF090B0E);
 const _surface = Color(0xFF12161B);
@@ -241,6 +242,8 @@ class _CoreVisualizerScreenState extends State<CoreVisualizerScreen>
         Text('Native engine controls are not loaded by this screen yet.', style: TextStyle(color: _muted, fontSize: 10, height: 1.4)),
       ])),
     ])),
+    const SizedBox(height: 12),
+    const CoreEqTestTonePanel(),
   ]);
 
   Widget _sliderRow(String label, double value, double min, double max, ValueChanged<double> changed, {String suffix = ''}) =>

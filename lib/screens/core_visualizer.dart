@@ -97,7 +97,10 @@ class _CoreVisualizerScreenState extends State<CoreVisualizerScreen>
     try {
       while (_nativeSyncRequested && mounted) {
         _nativeSyncRequested = false;
-        final gains = List<double>.of(_bands);
+        final gains = List<double>.generate(_bands.length, (i) {
+          final bassOffset = _bassBoost && i < 3 ? _bass : 0.0;
+          return (_bands[i] + bassOffset).clamp(-12.0, 12.0).toDouble();
+        });
         final outputGain = _volume;
         final bypassed = _bypass;
         try {
@@ -257,8 +260,8 @@ class _CoreVisualizerScreenState extends State<CoreVisualizerScreen>
             for (var j = 0; j < _bands.length; j++) {
               _bands[j] = curve[j];
             }
-            _bass = i == 1 ? 6 : 0;
-            _bassBoost = i == 1;
+            _bass = 0;
+            _bassBoost = false;
           });
           _syncNativeSettings();
         },
@@ -281,9 +284,19 @@ class _CoreVisualizerScreenState extends State<CoreVisualizerScreen>
     _panel(child: Column(children: [
       Row(children: [
         const Expanded(child: Text('BASS BOOST', style: TextStyle(color: _text, fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: .5))),
-        Switch.adaptive(value: _bassBoost, activeTrackColor: _cyan, onChanged: (v) => setState(() { _bassBoost = v; if (v && _bass == 0) _bass = 5; if (!v) _bass = 0; })),
+        Switch.adaptive(value: _bassBoost, activeTrackColor: _cyan, onChanged: (v) {
+          setState(() {
+            _bassBoost = v;
+            if (v && _bass == 0) _bass = 5;
+            if (!v) _bass = 0;
+          });
+          _syncNativeSettings();
+        }),
       ]),
-      _sliderRow('Bass amount', _bass, -6, 12, (v) => setState(() => _bass = v), suffix: ' dB'),
+      _sliderRow('Bass amount', _bass, -6, 12, (v) {
+        setState(() => _bass = v);
+        _syncNativeSettings();
+      }, suffix: ' dB'),
       const Divider(color: _line, height: 22),
       Row(children: [
         const Expanded(child: Text('GRAPHIC EQUALIZER', style: TextStyle(color: _text, fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: .5))),
@@ -346,7 +359,7 @@ class _CoreVisualizerScreenState extends State<CoreVisualizerScreen>
       const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text('PROCESSING ENGINE', style: TextStyle(color: _text, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: .5)),
         SizedBox(height: 4),
-        Text('10-band EQ, output gain and bypass are sent to the Android test-tone DSP. Other controls remain UI-only.', style: TextStyle(color: _muted, fontSize: 10, height: 1.4)),
+        Text('10-band EQ, bass boost, output gain and bypass are sent to the Android test-tone DSP. Limiter and spatial audio are currently UI-only.', style: TextStyle(color: _muted, fontSize: 10, height: 1.4)),
       ])),
     ])),
     const SizedBox(height: 12),

@@ -69,7 +69,13 @@ class _CoreVisualizerScreenState extends State<CoreVisualizerScreen>
       }
     } catch (_) {
       // The platform channel may be unavailable on desktop or in widget tests.
-      // Keep the explicit offline state rather than inventing signal data.
+      // Never leave a stale "active" signal visible after a failed status read.
+      if (mounted && (_toneRunning || _peakLevel != 0)) {
+        setState(() {
+          _toneRunning = false;
+          _peakLevel = 0;
+        });
+      }
     } finally {
       _statusReadRunning = false;
     }

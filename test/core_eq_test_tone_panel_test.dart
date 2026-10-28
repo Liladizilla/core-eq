@@ -18,7 +18,6 @@ void main() {
     await tester.pumpWidget(MaterialApp(
       home: Scaffold(body: CoreEqTestTonePanel(
         audio: CoreEqAndroidAudio(channel: channel),
-        androidPlatformOverride: false,
         androidPlatformOverride: true,
         androidPlatformOverride: true,
       )),
@@ -55,6 +54,7 @@ void main() {
     await tester.pumpWidget(MaterialApp(
       home: Scaffold(body: CoreEqTestTonePanel(
         audio: CoreEqAndroidAudio(channel: channel),
+        androidPlatformOverride: true,
       )),
     ));
 
@@ -79,6 +79,7 @@ void main() {
     await tester.pumpWidget(MaterialApp(
       home: Scaffold(body: CoreEqTestTonePanel(
         audio: CoreEqAndroidAudio(channel: channel),
+        androidPlatformOverride: false,
       )),
     ));
 

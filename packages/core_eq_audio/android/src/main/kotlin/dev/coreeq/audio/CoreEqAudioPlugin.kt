@@ -27,6 +27,9 @@ class CoreEqAudioPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
     private val bandGainsDb = FloatArray(10) { 0.0f }
     @Volatile private var outputGainDb = 0.0f
     @Volatile private var bypassed = false
+    @Volatile private var limiterEnabled = true
+    // Gain state is owned by the single audio worker.
+    private var limiterGain = 1.0f
 
     override fun onAttachedToEngine(binding: FlutterPlugin.FlutterPluginBinding) {
         channel = MethodChannel(binding.binaryMessenger, "core_eq_audio")
@@ -73,6 +76,16 @@ class CoreEqAudioPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
                     val code = if (engine == 0L) 0 else nativeSetOutputGain(engine, gainDb.toFloat())
                     if (code == 0) result.success(null)
                     else result.error("NATIVE_EQ_REJECTED", "Native DSP rejected output gain (status $code).", null)
+                }
+            }
+            "setLimiterEnabled" -> {
+                val enabled = call.argument<Boolean>("enabled")
+                if (enabled == null) {
+                    result.error("INVALID_EQ_PARAMETER", "Limiter enabled must be a boolean.", null)
+                } else {
+                    limiterEnabled = enabled
+                    if (!enabled) limiterGain = 1.0f
+                    result.success(null)
                 }
             }
             "setBypassed" -> {
@@ -163,6 +176,24 @@ class CoreEqAudioPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
                     }
                     check(nativeProcess(engine, pcm, frames, channels) == 0) {
                         "Native DSP rejected an audio block."
+                    }
+                    // Output-stage peak limiter: keep the generated test tone below
+                    // -0.9 dBFS with fast attack and gradual release. It operates on
+                    // the processed PCM buffer and never copies audio over the channel.
+                    floats.position(0)
+                    if (limiterEnabled) {
+                        var blockPeak = 0.0f
+                        for (i in 0 until frames * channels) {
+                            blockPeak = maxOf(blockPeak, kotlin.math.abs(floats.get(i)))
+                        }
+                        val targetGain = if (blockPeak > 0.9f) 0.9f / blockPeak else 1.0f
+                        limiterGain = if (targetGain < limiterGain) targetGain
+                            else limiterGain + (targetGain - limiterGain) * 0.15f
+                        for (i in 0 until frames * channels) {
+                            floats.put(i, floats.get(i) * limiterGain)
+                        }
+                    } else {
+                        limiterGain = 1.0f
                     }
                     pcm.position(0)
                     val written = audioTrack.write(pcm, bytesPerBlock, AudioTrack.WRITE_BLOCKING)

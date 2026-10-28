@@ -224,14 +224,14 @@ class _CoreVisualizerScreenState extends State<CoreVisualizerScreen>
       Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(color: _bg, borderRadius: BorderRadius.circular(13)),
-        child: const Row(children: [
-          Icon(Icons.info_outline_rounded, color: _amber, size: 15),
-          SizedBox(width: 8),
+        child: Row(children: [
+          const Icon(Icons.info_outline_rounded, color: _amber, size: 15),
+          const SizedBox(width: 8),
           Expanded(child: Text(
             _toneRunning
                 ? 'Generated test tone active. Field intensity follows the native DSP peak; microphone and system audio are not connected.'
                 : 'No audio stream connected. Start the generated test tone to drive the field from native DSP measurements.',
-            style: TextStyle(color: _muted, fontSize: 10, height: 1.4),
+            style: const TextStyle(color: _muted, fontSize: 10, height: 1.4),
           )),
         ]),
       ),

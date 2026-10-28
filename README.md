@@ -7,28 +7,33 @@ CORE-EQ is a standalone, cross-platform modular audio processing project. It is 
 - **Android:** pursue system-wide processing where device APIs permit it, with explicit compatibility reporting and a foreground service. Session attachment and playback capture have different limitations; neither will be advertised as universally supported.
 - **iOS:** provide a reference player and AUv3 mastering effect. iOS does not allow third-party apps to intercept arbitrary audio from other apps system-wide.
 - **UI:** Flutter hardware-inspired command deck with an animated spherical spectrum, precision labels, and flat machined control surfaces.
-- **Visual reference:** [Music Player, Web/UX & UI by Artemii Lebedev](https://dribbble.com/shots/18450373-Music-Player-Web-UX-UI). The current sphere is procedural 2.5D canvas artwork with demo animation, not a live 3D engine or audio-reactive feed.
-- **Typography:** use a geometric futuristic display face in the spirit of Nexus. The commercial Nexus font is not bundled; add the properly licensed font files before claiming an exact match.
+- **Visual reference:** [Music Player, Web/UX & UI by Artemii Lebedev](https://dribbble.com/shots/18450373-Music-Player-Web-UX-UI). The sphere is procedural 2.5D canvas artwork; do not describe it as a live 3D engine.
+- **Typography:** use a geometric futuristic display face in the spirit of Nexus. The commercial Nexus font is not bundled; add properly licensed font files before claiming an exact match.
 - **DSP:** shared C++17 engine, exposed through a narrow C ABI/FFI boundary.
 - **Privacy:** audio processing stays on-device; captured samples are not retained or transmitted.
 
-## Phase 0 scope
+## Current implementation status
 
-1. Establish the Flutter app shell and command-deck visual system.
-2. Implement and test a C++ DSP foundation: input/output gain, biquad parametric EQ, bypass, parameter smoothing, and response tests.
+The Flutter app includes a dark command-deck interface, an animated spectrum presentation, presets and controls, plus a native Android generated-test-tone path. On that generated PCM path, the Android plugin currently wires EQ band gains, bass boost through effective band gains, bypass, output gain, an output peak limiter, and optional mid/side stereo widening. The header reports whether the generated test tone is active, and the visualizer receives native DSP peak measurements.
+
+**Important scope limit:** this is not yet a system-wide equalizer. It does not intercept audio from Spotify, browsers, or other apps, and it does not process microphone input. The generated tone is a test signal, not a reference music player. Actual playback, stereo effect quality, and stability have not been verified on physical Android hardware. Do not claim device-level behavior until it has been tested there.
+
+The repository also contains a C++17 10-band parametric EQ foundation, native DSP smoke tests, Flutter tests, and Android library packaging work for arm64-v8a, armeabi-v7a, and x86_64. The Dart FFI loader can resolve packaged library names and validate ABI version 1. Android system-wide audio integration and the iOS player/AUv3 integration remain unfinished.
+
+## Phase 0 priorities
+
+1. Keep the Flutter command deck and its controls consistent with the actual processing implementation.
+2. Test the shared C++ DSP engine with response, clipping, parameter-boundary, and regression tests.
 3. Define a real-time-safe parameter and metering interface.
-4. Prove Android audio integration on actual hardware before claiming system-wide processing.
-5. Establish an iOS player graph and AUv3 extension path.
+4. Build and listen to the Android generated-tone path on physical hardware before expanding claims.
+5. Investigate Android audio-effect attachment and compatibility without promising universal system-wide access.
+6. Establish an iOS player graph and AUv3 extension path.
 
 ## Important platform constraints
 
-Android effect attachment varies by OEM, firmware, and playback session. Playback capture requires user consent and is blocked by apps that opt out; routing captured audio back to output can add significant latency.
+Android effect attachment varies by OEM, firmware, and playback session. Playback capture requires user consent, is blocked by apps that opt out, and routing captured audio back to output can add significant latency.
 
 iOS system-wide interception is not available to ordinary third-party apps. The iOS implementation is therefore player-centric and AUv3-based.
-
-## Development status
-
-The standalone repository contains the Flutter command deck, an animated orbital spectrum presentation, widget tests, a C++17 10-band parametric EQ foundation, a bounded single-producer/single-consumer parameter queue, smoothed input/output gain, and native DSP smoke tests. The visualizer animation, numeric meters, latency/CPU telemetry, preset controls, and bypass switch remain presentation-only; they are not connected to native processing or device audio. Android native library packaging is being added for arm64-v8a, armeabi-v7a, and x86_64. The Dart FFI loader can resolve packaged library names and validate ABI version 1, but the UI is not yet wired to instantiate the engine. Android/iOS audio integration remains unimplemented and must be validated on real hardware. See [the architecture notes](docs/CORE_EQ_ARCHITECTURE.md) for the native build command and limits.
 
 ## Planned structure
 

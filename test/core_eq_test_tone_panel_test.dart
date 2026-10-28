@@ -44,8 +44,8 @@ void main() {
           'sampleRateHz': 48000,
           'channels': 2,
           'source': 'generated_test_tone',
-          'frequencyHz': call.arguments['frequencyHz'],
-          'amplitude': call.arguments['amplitude'],
+          'frequencyHz': (call.arguments as Map<Object?, Object?>)['frequencyHz'],
+          'amplitude': (call.arguments as Map<Object?, Object?>)['amplitude'],
           'peakLevel': 0.06,
         };
       }
@@ -68,8 +68,9 @@ void main() {
     await tester.pump(const Duration(milliseconds: 20));
 
     final start = calls.firstWhere((call) => call.method == 'startTestTone');
-    expect(start.arguments['frequencyHz'], 125);
-    expect(start.arguments['amplitude'], closeTo(0.06, 0.0001));
+    final arguments = start.arguments as Map<Object?, Object?>;
+    expect(arguments['frequencyHz'], 125);
+    expect(arguments['amplitude'], closeTo(0.06, 0.0001));
     expect(find.text('STOP TEST TONE'), findsOneWidget);
     expect(find.textContaining('Generated 125 Hz tone is playing'), findsOneWidget);
   });

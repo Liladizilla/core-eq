@@ -10,13 +10,13 @@ void main() {
   const channel = MethodChannel('core_eq_panel_widget_test');
 
   tearDown(() {
-    debugDefaultTargetPlatformOverride = null;
+    TestWidgetsFlutterBinding.ensureInitialized().platformDispatcher.platform = TargetPlatform.android;
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, null);
   });
 
   testWidgets('shows bounded level and frequency choices', (tester) async {
-    debugDefaultTargetPlatformOverride = TargetPlatform.android;
+    tester.binding.platformDispatcher.platform = TargetPlatform.android;
     await tester.pumpWidget(MaterialApp(
       home: Scaffold(body: CoreEqTestTonePanel(
         audio: CoreEqAndroidAudio(channel: channel),
@@ -33,7 +33,7 @@ void main() {
   });
 
   testWidgets('forwards selected frequency and level when starting', (tester) async {
-    debugDefaultTargetPlatformOverride = TargetPlatform.android;
+    tester.binding.platformDispatcher.platform = TargetPlatform.android;
     final calls = <MethodCall>[];
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, (call) async {
@@ -76,7 +76,7 @@ void main() {
   });
 
   testWidgets('disables playback outside Android', (tester) async {
-    debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+    tester.binding.platformDispatcher.platform = TargetPlatform.iOS;
     await tester.pumpWidget(MaterialApp(
       home: Scaffold(body: CoreEqTestTonePanel(
         audio: CoreEqAndroidAudio(channel: channel),

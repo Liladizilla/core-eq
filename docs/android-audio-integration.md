@@ -16,10 +16,16 @@ Do not label the app a working system-wide equalizer until a supported integrati
 | Root / privileged / OEM integration | May enable deeper system audio routing on supported builds | Requires privileges or platform integration ordinary Play-distributed apps do not have | Out of scope for the ordinary app build unless a separate privileged build is explicitly approved |
 | iOS system-wide interception | Not available to ordinary third-party apps | iOS does not let an app intercept arbitrary other apps' output | iOS must remain player-centric and/or use an AUv3 effect |
 
+## Current in-app player implementation
+
+A Media3/ExoPlayer local-file path is now being added alongside the generated-tone diagnostic. It routes decoded stereo PCM16 at supported sample rates through the native C++ processor before Android output. The Flutter panel selects a local audio file and exposes play, pause, stop, seek, and status. EQ band, output gain, and bypass settings are forwarded to this player pipeline.
+
+This is an in-app player, not a system-wide equalizer. PCM formats outside the processor's supported range may bypass the custom processor or fail to play through this EQ path; validate common MP3/AAC/FLAC/WAV files and report unsupported formats clearly before advertising broad codec compatibility. Bluetooth and physical-device output still require hardware testing.
+
 ## Recommended sequence
 
 1. **Keep the test-tone path honest.** Keep the UI disclosure that it is a generated signal and does not process other apps.
-2. **Build a reference player path.** Own the media decode/output pipeline and route decoded PCM through the shared C++ DSP before writing frames to output. This is the first path that can be made deterministic and tested without device privileges.
+2. **Validate the reference player.** Confirm local file selection, decode/output, EQ audibility, bypass, pause, seek, route changes, audio focus, and teardown on a physical Android device.
 3. **Define one streaming DSP contract.** The render call must accept caller-owned interleaved PCM, process bounded frame counts, avoid allocations and blocking operations, and expose explicit sample-rate/channel/format requirements. Keep UI/platform code outside the render loop.
 4. **Probe optional session effects.** If investigating session attachment, query capabilities and report unavailable/unsupported states instead of silently falling back or claiming universal support.
 5. **Treat playback capture as a separate experiment.** Prototype capture consent, allowed-source behavior, route-back handling, latency, audio focus, foreground-service behavior, and feedback prevention independently before considering it a product feature.

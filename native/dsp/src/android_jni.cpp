@@ -102,7 +102,8 @@ extern "C" JNIEXPORT jint JNICALL
 Java_dev_coreeq_audio_CoreEqMedia3AudioProcessor_nativeProcess(
     JNIEnv* env, jobject, jlong raw_handle, jobject pcm, jint frames, jint channels) {
   auto* handle = reinterpret_cast<core_eq_handle*>(raw_handle);
-  if (handle == nullptr || pcm == nullptr || frames <= 0 || channels != 2) {
+  if (handle == nullptr || pcm == nullptr || frames <= 0 ||
+      (channels != 1 && channels != 2)) {
     return CORE_EQ_STATUS_INVALID_ARGUMENT;
   }
   auto* samples = static_cast<float*>(env->GetDirectBufferAddress(pcm));

@@ -1,6 +1,6 @@
 #include <jni.h>
 
-#include <cmath>
+#include <cmath>\n#include <algorithm>
 
 #include <cstdint>
 
@@ -125,8 +125,10 @@ Java_dev_coreeq_audio_CoreEqMedia3AudioProcessor_nativeSetBandGain(
   }
   constexpr float frequencies[] = {32.0f, 64.0f, 125.0f, 250.0f, 500.0f,
                                    1000.0f, 2000.0f, 4000.0f, 8000.0f, 16000.0f};
+  const float safe_frequency =
+      std::min(frequencies[band], static_cast<float>(sample_rate_hz) * 0.45f);
   return static_cast<jint>(core_eq_configure_band(handle, static_cast<uint32_t>(band),
-                                                   frequencies[band], 1.0f, gain_db,
+                                                   safe_frequency, 1.0f, gain_db,
                                                    static_cast<float>(sample_rate_hz)));
 }
 

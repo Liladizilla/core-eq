@@ -1,6 +1,7 @@
 #include <jni.h>
 
-#include <cmath>\n#include <algorithm>
+#include <cmath>
+#include <algorithm>
 
 #include <cstdint>
 

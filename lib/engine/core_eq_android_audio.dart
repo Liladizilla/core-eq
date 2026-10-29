@@ -156,6 +156,11 @@ final class CoreEqMediaStatus {
     required this.positionMs,
     required this.durationMs,
     required this.mediaUri,
+    this.inputPeakLevel = 0.0,
+    this.outputPeakLevel = 0.0,
+    this.processedFrames = 0,
+    this.sampleRateHz = 0,
+    this.channels = 0,
   });
 
   final bool isPlaying;
@@ -164,6 +169,11 @@ final class CoreEqMediaStatus {
   final int positionMs;
   final int? durationMs;
   final String? mediaUri;
+  final double inputPeakLevel;
+  final double outputPeakLevel;
+  final int processedFrames;
+  final int sampleRateHz;
+  final int channels;
 
   factory CoreEqMediaStatus.fromMap(Map<Object?, Object?> map) => CoreEqMediaStatus(
     isPlaying: map['isPlaying'] == true,
@@ -172,5 +182,15 @@ final class CoreEqMediaStatus {
     positionMs: map['positionMs'] is num ? (map['positionMs']! as num).toInt() : 0,
     durationMs: map['durationMs'] is num ? (map['durationMs']! as num).toInt() : null,
     mediaUri: map['mediaUri'] is String ? map['mediaUri']! as String : null,
+    inputPeakLevel: _finiteLevel(map['inputPeakLevel']),
+    outputPeakLevel: _finiteLevel(map['outputPeakLevel']),
+    processedFrames: map['processedFrames'] is num ? (map['processedFrames']! as num).toInt().clamp(0, 1 << 62) : 0,
+    sampleRateHz: map['sampleRateHz'] is num ? (map['sampleRateHz']! as num).toInt() : 0,
+    channels: map['channels'] is num ? (map['channels']! as num).toInt() : 0,
   );
+
+  static double _finiteLevel(Object? value) {
+    final number = value is num ? value.toDouble() : 0.0;
+    return number.isFinite && number >= 0 ? number : 0.0;
+  }
 }

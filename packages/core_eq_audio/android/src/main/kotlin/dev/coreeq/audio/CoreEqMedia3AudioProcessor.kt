@@ -7,26 +7,52 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
 /**
- * Media3 processor that routes decoded 48 kHz stereo PCM through CORE-EQ's native DSP.
- * This is a player-pipeline component, not a hook into audio from other applications.
+ * Media3 processor for stereo PCM16 at common music sample rates.
+ * This processes only audio in CORE-EQ's own Media3 player, not other apps.
  */
 class CoreEqMedia3AudioProcessor : BaseAudioProcessor() {
     private var engine: Long = 0L
     private var channels = 0
+    private var sampleRateHz = 0
+    private val bandGainsDb = FloatArray(10)
+    private var outputGainDb = 0.0f
+    private var bypassed = false
     private var floatScratch: ByteBuffer = ByteBuffer.allocateDirect(0).order(ByteOrder.nativeOrder())
 
     init {
         System.loadLibrary("core_eq")
-        engine = nativeCreate()
-        check(engine != 0L) { "Could not create CORE-EQ native DSP engine." }
+        ensureEngine()
+    }
+
+    private fun ensureEngine() {
+        if (engine == 0L) {
+            engine = nativeCreate()
+            check(engine != 0L) { "Could not create CORE-EQ native DSP engine." }
+            if (sampleRateHz > 0) applySettings()
+        }
+    }
+
+    private fun applySettings() {
+        for (band in bandGainsDb.indices) {
+            check(nativeSetBandGain(engine, band, bandGainsDb[band], sampleRateHz) == 0) {
+                "Native DSP rejected gain for band $band at $sampleRateHz Hz."
+            }
+        }
+        check(nativeSetOutputGain(engine, outputGainDb) == 0) { "Native DSP rejected output gain." }
+        check(nativeSetBypassed(engine, bypassed) == 0) { "Native DSP rejected bypass state." }
     }
 
     override fun onConfigure(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
-        if (inputAudioFormat.sampleRate != 48000 || inputAudioFormat.channelCount != 2 ||
+        if (inputAudioFormat.sampleRate !in 22050..96000 ||
+            inputAudioFormat.channelCount != 2 ||
             inputAudioFormat.encoding != C.ENCODING_PCM_16BIT) {
             throw AudioProcessor.UnhandledAudioFormatException(inputAudioFormat)
         }
+        val changedRate = sampleRateHz != inputAudioFormat.sampleRate
+        sampleRateHz = inputAudioFormat.sampleRate
         channels = inputAudioFormat.channelCount
+        ensureEngine()
+        if (changedRate) applySettings()
         return inputAudioFormat
     }
 
@@ -60,17 +86,27 @@ class CoreEqMedia3AudioProcessor : BaseAudioProcessor() {
         output.flip()
     }
 
-    fun setBandGain(band: Int, gainDb: Float): Boolean =
-        engine != 0L && nativeSetBandGain(engine, band, gainDb) == 0
+    fun setBandGain(band: Int, gainDb: Float): Boolean {
+        if (band !in bandGainsDb.indices || !gainDb.isFinite() || gainDb !in -12.0f..12.0f) return false
+        bandGainsDb[band] = gainDb
+        return engine == 0L || sampleRateHz == 0 ||
+            nativeSetBandGain(engine, band, gainDb, sampleRateHz) == 0
+    }
 
-    fun setOutputGain(gainDb: Float): Boolean =
-        engine != 0L && nativeSetOutputGain(engine, gainDb) == 0
+    fun setOutputGain(gainDb: Float): Boolean {
+        if (!gainDb.isFinite() || gainDb !in -24.0f..6.0f) return false
+        outputGainDb = gainDb
+        return engine == 0L || nativeSetOutputGain(engine, gainDb) == 0
+    }
 
-    fun setBypassed(bypassed: Boolean): Boolean =
-        engine != 0L && nativeSetBypassed(engine, bypassed) == 0
+    fun setBypassed(value: Boolean): Boolean {
+        bypassed = value
+        return engine == 0L || nativeSetBypassed(engine, value) == 0
+    }
 
     override fun onFlush() {
         if (engine != 0L) nativeReset(engine)
+        if (sampleRateHz > 0 && engine != 0L) applySettings()
     }
 
     override fun onReset() {
@@ -80,12 +116,13 @@ class CoreEqMedia3AudioProcessor : BaseAudioProcessor() {
         }
         floatScratch = ByteBuffer.allocateDirect(0).order(ByteOrder.nativeOrder())
         channels = 0
+        sampleRateHz = 0
     }
 
     private external fun nativeCreate(): Long
     private external fun nativeDestroy(handle: Long)
     private external fun nativeProcess(handle: Long, pcm: ByteBuffer, frames: Int, channels: Int): Int
-    private external fun nativeSetBandGain(handle: Long, band: Int, gainDb: Float): Int
+    private external fun nativeSetBandGain(handle: Long, band: Int, gainDb: Float, sampleRateHz: Int): Int
     private external fun nativeSetOutputGain(handle: Long, gainDb: Float): Int
     private external fun nativeSetBypassed(handle: Long, bypassed: Boolean): Int
     private external fun nativeReset(handle: Long): Int

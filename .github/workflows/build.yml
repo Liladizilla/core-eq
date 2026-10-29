@@ -42,6 +42,16 @@ jobs:
         run: bash scripts/apply_android_branding.sh
       - name: Resolve dependencies
         run: flutter pub get
+      - name: Raise file_picker plugin compile SDK
+        run: |
+          FILE_PICKER_GRADLE="$(find "$HOME/.pub-cache/hosted/pub.dev" -path '*/file_picker-*/android/build.gradle' -print -quit)"
+          if [ -z "$FILE_PICKER_GRADLE" ]; then
+            echo 'file_picker Android Gradle file not found in pub cache' >&2
+            exit 1
+          fi
+          echo "Patching $FILE_PICKER_GRADLE"
+          sed -i -E 's/compileSdkVersion[[:space:]]+34/compileSdkVersion 36/g; s/compileSdk[[:space:]]+34/compileSdk 36/g' "$FILE_PICKER_GRADLE"
+          grep -nE 'compileSdk(Version)?' "$FILE_PICKER_GRADLE"
       - name: Run tests
         run: flutter test
       - name: Analyze

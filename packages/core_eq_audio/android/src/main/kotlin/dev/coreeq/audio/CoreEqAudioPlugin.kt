@@ -41,6 +41,7 @@ class CoreEqAudioPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
         }
     }
     private var engine: Long = 0L
+    private var mediaPlayer: CoreEqMedia3Player? = null
     private var lastError: String? = null
     @Volatile private var toneFrequencyHz = 440
     @Volatile private var toneAmplitude = 0.06f
@@ -61,6 +62,52 @@ class CoreEqAudioPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
 
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
         when (call.method) {
+            "playMedia" -> {
+                val uri = call.argument<String>("uri")
+                if (uri.isNullOrBlank()) {
+                    result.error("INVALID_MEDIA_URI", "Choose an audio file before playback.", null)
+                    return
+                }
+                try {
+                    if (running) stopPlayback()
+                    val player = mediaPlayer ?: CoreEqMedia3Player(appContext) { message ->
+                        lastError = message
+                        mainHandler.post { channel.invokeMethod("mediaPlaybackError", message) }
+                    }.also { mediaPlayer = it }
+                    player.applySettings(bandGainsDb, outputGainDb, bypassed)
+                    player.play(uri)
+                    lastError = null
+                    result.success(player.status())
+                } catch (e: Exception) {
+                    lastError = e.message ?: e.javaClass.simpleName
+                    result.error("MEDIA_PLAYBACK_FAILED", lastError, null)
+                }
+            }
+            "pauseMedia" -> {
+                mediaPlayer?.pause()
+                result.success(mediaPlayer?.status() ?: emptyMap<String, Any?>())
+            }
+            "resumeMedia" -> {
+                mediaPlayer?.resume()
+                result.success(mediaPlayer?.status() ?: emptyMap<String, Any?>())
+            }
+            "stopMedia" -> {
+                mediaPlayer?.stop()
+                result.success(mediaPlayer?.status() ?: emptyMap<String, Any?>())
+            }
+            "seekMedia" -> {
+                val positionMs = call.argument<Number>("positionMs")?.toLong()
+                if (positionMs == null || positionMs < 0L) {
+                    result.error("INVALID_SEEK_POSITION", "Seek position must be zero or greater.", null)
+                } else {
+                    mediaPlayer?.seekTo(positionMs)
+                    result.success(mediaPlayer?.status() ?: emptyMap<String, Any?>())
+                }
+            }
+            "mediaStatus" -> result.success(mediaPlayer?.status() ?: mapOf(
+                "isPlaying" to false, "playWhenReady" to false, "state" to "idle",
+                "positionMs" to 0L, "durationMs" to null, "mediaUri" to null
+            ))
             "startTestTone" -> {
                 val frequencyHz = call.argument<Int>("frequencyHz") ?: 440
                 val amplitude = call.argument<Double>("amplitude")?.toFloat() ?: 0.06f
@@ -96,7 +143,8 @@ class CoreEqAudioPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
                 } else {
                     bandGainsDb[band] = gainDb.toFloat()
                     val code = if (engine == 0L) 0 else nativeSetBandGain(engine, band, gainDb.toFloat())
-                    if (code == 0) result.success(null)
+                    val mediaOk = mediaPlayer?.setBandGain(band, gainDb.toFloat()) ?: true
+                    if (code == 0 && mediaOk) result.success(null)
                     else result.error("NATIVE_EQ_REJECTED", "Native DSP rejected band update (status $code).", null)
                 }
             }
@@ -107,7 +155,8 @@ class CoreEqAudioPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
                 } else {
                     outputGainDb = gainDb.toFloat()
                     val code = if (engine == 0L) 0 else nativeSetOutputGain(engine, gainDb.toFloat())
-                    if (code == 0) result.success(null)
+                    val mediaOk = mediaPlayer?.setOutputGain(gainDb.toFloat()) ?: true
+                    if (code == 0 && mediaOk) result.success(null)
                     else result.error("NATIVE_EQ_REJECTED", "Native DSP rejected output gain (status $code).", null)
                 }
             }
@@ -136,7 +185,8 @@ class CoreEqAudioPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
                 } else {
                     this.bypassed = bypassed
                     val code = if (engine == 0L) 0 else nativeSetBypassed(engine, bypassed)
-                    if (code == 0) result.success(null)
+                    val mediaOk = mediaPlayer?.setBypassed(bypassed) ?: true
+                    if (code == 0 && mediaOk) result.success(null)
                     else result.error("NATIVE_EQ_REJECTED", "Native DSP rejected bypass update (status $code).", null)
                 }
             }
@@ -356,6 +406,8 @@ class CoreEqAudioPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
 
     override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
         stopPlayback()
+        mediaPlayer?.release()
+        mediaPlayer = null
         channel.setMethodCallHandler(null)
     }
 

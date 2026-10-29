@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../engine/core_eq_control_mapper.dart';
 import '../engine/core_eq_android_audio.dart';
+import '../widgets/core_eq_media_player_panel.dart';
 import '../widgets/core_eq_test_tone_panel.dart';
 
 const _bg = Color(0xFF090B0E);
@@ -372,6 +373,8 @@ class _CoreVisualizerScreenState extends State<CoreVisualizerScreen>
         Text('10-band EQ, bass boost, output gain and bypass run through native DSP. Limiting and mid/side stereo widening process generated-tone PCM only. Microphone and system audio are not connected.', style: TextStyle(color: _muted, fontSize: 10, height: 1.4)),
       ])),
     ])),
+    const SizedBox(height: 12),
+    const CoreEqMediaPlayerPanel(),
     const SizedBox(height: 12),
     CoreEqTestTonePanel(audio: _audio),
   ]);

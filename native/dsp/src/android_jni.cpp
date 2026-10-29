@@ -1,6 +1,7 @@
 #include <jni.h>
 
 #include <cmath>
+#include <algorithm>
 
 #include <cstdint>
 
@@ -116,16 +117,20 @@ Java_dev_coreeq_audio_CoreEqMedia3AudioProcessor_nativeProcess(
 
 extern "C" JNIEXPORT jint JNICALL
 Java_dev_coreeq_audio_CoreEqMedia3AudioProcessor_nativeSetBandGain(
-    JNIEnv*, jobject, jlong raw_handle, jint band, jfloat gain_db) {
+    JNIEnv*, jobject, jlong raw_handle, jint band, jfloat gain_db, jint sample_rate_hz) {
   auto* handle = reinterpret_cast<core_eq_handle*>(raw_handle);
   if (handle == nullptr || band < 0 || band >= 10 ||
-      !std::isfinite(gain_db) || gain_db < -12.0f || gain_db > 12.0f) {
+      !std::isfinite(gain_db) || gain_db < -12.0f || gain_db > 12.0f ||
+      sample_rate_hz < 22050 || sample_rate_hz > 96000) {
     return CORE_EQ_STATUS_INVALID_ARGUMENT;
   }
   constexpr float frequencies[] = {32.0f, 64.0f, 125.0f, 250.0f, 500.0f,
                                    1000.0f, 2000.0f, 4000.0f, 8000.0f, 16000.0f};
+  const float safe_frequency =
+      std::min(frequencies[band], static_cast<float>(sample_rate_hz) * 0.45f);
   return static_cast<jint>(core_eq_configure_band(handle, static_cast<uint32_t>(band),
-                                                   frequencies[band], 1.0f, gain_db, 48000.0f));
+                                                   safe_frequency, 1.0f, gain_db,
+                                                   static_cast<float>(sample_rate_hz)));
 }
 
 extern "C" JNIEXPORT jint JNICALL

@@ -26,10 +26,37 @@ jobs:
           channel: stable
       - name: Generate Android runner scaffold
         run: flutter create --platforms=android --project-name core_eq .
+      - name: Set Android compile SDK for current plugins
+        run: |
+          if [ -f android/app/build.gradle.kts ]; then
+            sed -i 's/compileSdk = flutter.compileSdkVersion/compileSdk = 36/' android/app/build.gradle.kts
+            sed -i 's/compileSdk = 34/compileSdk = 36/' android/app/build.gradle.kts
+          elif [ -f android/app/build.gradle ]; then
+            sed -i 's/compileSdkVersion flutter.compileSdkVersion/compileSdkVersion 36/' android/app/build.gradle
+            sed -i 's/compileSdkVersion 34/compileSdkVersion 36/' android/app/build.gradle
+          else
+            echo 'Android app Gradle file not found' >&2
+            exit 1
+          fi
       - name: Apply CORE-EQ Android launcher branding
         run: bash scripts/apply_android_branding.sh
       - name: Resolve dependencies
         run: flutter pub get
+      - name: Raise file_picker plugin compile SDK
+        run: |
+          FILE_PICKER_GRADLE="$(find "$HOME/.pub-cache/hosted/pub.dev" -path '*/file_picker-*/android/build.gradle' -not -path '*/example/*' -print -quit)"
+          if [ -z "$FILE_PICKER_GRADLE" ]; then
+            echo 'file_picker package Android Gradle file not found in pub cache' >&2
+            find "$HOME/.pub-cache/hosted/pub.dev" -path '*/file_picker-*/*gradle*' -print | head -40
+            exit 1
+          fi
+          echo "Patching package Gradle file: $FILE_PICKER_GRADLE"
+          sed -i -E 's/compileSdkVersion[[:space:]]+34/compileSdkVersion 36/g; s/compileSdk[[:space:]]+34/compileSdk 36/g' "$FILE_PICKER_GRADLE"
+          grep -nE 'compileSdk(Version)?' "$FILE_PICKER_GRADLE"
+          if grep -Eq 'compileSdk(Version)?[[:space:]]*=?[[:space:]]*34' "$FILE_PICKER_GRADLE"; then
+            echo 'file_picker still declares compile SDK 34 after patch' >&2
+            exit 1
+          fi
       - name: Run tests
         run: flutter test
       - name: Analyze

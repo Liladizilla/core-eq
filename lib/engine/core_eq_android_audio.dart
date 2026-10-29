@@ -108,6 +108,32 @@ final class CoreEqAndroidAudio {
     await _channel.invokeMethod<void>('setBypassed', {'bypassed': bypassed});
   }
 
+  Future<CoreEqMediaStatus> playMedia(String uri) async {
+    if (uri.trim().isEmpty) throw ArgumentError.value(uri, 'uri', 'Media URI cannot be empty.');
+    final result = await _channel.invokeMapMethod<Object?, Object?>('playMedia', {'uri': uri});
+    if (result == null) throw PlatformException(code: 'EMPTY_MEDIA_STATUS', message: 'Android returned no media status.');
+    return CoreEqMediaStatus.fromMap(result);
+  }
+
+  Future<CoreEqMediaStatus> pauseMedia() => _mediaCommand('pauseMedia');
+  Future<CoreEqMediaStatus> resumeMedia() => _mediaCommand('resumeMedia');
+  Future<CoreEqMediaStatus> stopMedia() => _mediaCommand('stopMedia');
+  Future<CoreEqMediaStatus> readMediaStatus() => _mediaCommand('mediaStatus');
+
+  Future<CoreEqMediaStatus> seekMedia(Duration position) async {
+    final result = await _channel.invokeMapMethod<Object?, Object?>(
+      'seekMedia', {'positionMs': position.inMilliseconds.clamp(0, 1 << 62)},
+    );
+    if (result == null) throw PlatformException(code: 'EMPTY_MEDIA_STATUS', message: 'Android returned no media status.');
+    return CoreEqMediaStatus.fromMap(result);
+  }
+
+  Future<CoreEqMediaStatus> _mediaCommand(String method) async {
+    final result = await _channel.invokeMapMethod<Object?, Object?>(method);
+    if (result == null) throw PlatformException(code: 'EMPTY_MEDIA_STATUS', message: 'Android returned no media status.');
+    return CoreEqMediaStatus.fromMap(result);
+  }
+
   Future<CoreEqAndroidAudioStatus> readStatus() async {
     final result = await _channel.invokeMapMethod<Object?, Object?>('status');
     if (result == null) {
@@ -118,4 +144,33 @@ final class CoreEqAndroidAudio {
     }
     return CoreEqAndroidAudioStatus.fromMap(result);
   }
+}
+
+
+@immutable
+final class CoreEqMediaStatus {
+  const CoreEqMediaStatus({
+    required this.isPlaying,
+    required this.playWhenReady,
+    required this.state,
+    required this.positionMs,
+    required this.durationMs,
+    required this.mediaUri,
+  });
+
+  final bool isPlaying;
+  final bool playWhenReady;
+  final String state;
+  final int positionMs;
+  final int? durationMs;
+  final String? mediaUri;
+
+  factory CoreEqMediaStatus.fromMap(Map<Object?, Object?> map) => CoreEqMediaStatus(
+    isPlaying: map['isPlaying'] == true,
+    playWhenReady: map['playWhenReady'] == true,
+    state: map['state'] is String ? map['state']! as String : 'idle',
+    positionMs: map['positionMs'] is num ? (map['positionMs']! as num).toInt() : 0,
+    durationMs: map['durationMs'] is num ? (map['durationMs']! as num).toInt() : null,
+    mediaUri: map['mediaUri'] is String ? map['mediaUri']! as String : null,
+  );
 }

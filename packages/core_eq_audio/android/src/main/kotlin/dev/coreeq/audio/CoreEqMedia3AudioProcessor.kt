@@ -7,7 +7,7 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
 /**
- * Media3 processor for stereo PCM16 at common music sample rates.
+ * Media3 processor for mono or stereo PCM16 at common music sample rates.
  * This processes only audio in CORE-EQ's own Media3 player, not other apps.
  */
 class CoreEqMedia3AudioProcessor : BaseAudioProcessor() {
@@ -44,7 +44,7 @@ class CoreEqMedia3AudioProcessor : BaseAudioProcessor() {
 
     override fun onConfigure(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
         if (inputAudioFormat.sampleRate !in 22050..96000 ||
-            inputAudioFormat.channelCount != 2 ||
+            inputAudioFormat.channelCount !in 1..2 ||
             inputAudioFormat.encoding != C.ENCODING_PCM_16BIT) {
             throw AudioProcessor.UnhandledAudioFormatException(inputAudioFormat)
         }

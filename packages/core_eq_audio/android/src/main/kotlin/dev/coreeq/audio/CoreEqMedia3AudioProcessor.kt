@@ -24,6 +24,8 @@ class CoreEqMedia3AudioProcessor : BaseAudioProcessor() {
         private set
     @Volatile var processedFrames: Long = 0L
         private set
+    val currentSampleRateHz: Int get() = sampleRateHz
+    val currentChannelCount: Int get() = channels
 
     init {
         System.loadLibrary("core_eq")

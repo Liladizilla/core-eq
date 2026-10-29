@@ -18,6 +18,12 @@ class CoreEqMedia3AudioProcessor : BaseAudioProcessor() {
     private var outputGainDb = 0.0f
     private var bypassed = false
     private var floatScratch: ByteBuffer = ByteBuffer.allocateDirect(0).order(ByteOrder.nativeOrder())
+    @Volatile var inputPeakLevel: Float = 0.0f
+        private set
+    @Volatile var outputPeakLevel: Float = 0.0f
+        private set
+    @Volatile var processedFrames: Long = 0L
+        private set
 
     init {
         System.loadLibrary("core_eq")
@@ -71,17 +77,28 @@ class CoreEqMedia3AudioProcessor : BaseAudioProcessor() {
         floatScratch.clear()
         val input = inputBuffer.duplicate().order(ByteOrder.LITTLE_ENDIAN)
         val floatView = floatScratch.asFloatBuffer()
-        repeat(samples) { floatView.put(input.short / 32768.0f) }
+        var inputPeak = 0.0f
+        repeat(samples) {
+            val sample = input.short / 32768.0f
+            inputPeak = maxOf(inputPeak, kotlin.math.abs(sample))
+            floatView.put(sample)
+        }
+        inputPeakLevel = inputPeak
         check(nativeProcess(engine, floatScratch, frames, channels) == 0) {
             "CORE-EQ native DSP rejected a Media3 PCM block."
         }
         val output = replaceOutputBuffer(inputBytes).order(ByteOrder.LITTLE_ENDIAN)
         floatView.position(0)
+        var outputPeak = 0.0f
         repeat(samples) {
-            val sample = floatView.get().coerceIn(-1.0f, 1.0f)
+            val processedSample = floatView.get()
+            outputPeak = maxOf(outputPeak, kotlin.math.abs(processedSample))
+            val sample = processedSample.coerceIn(-1.0f, 1.0f)
             val pcm = (sample * 32767.0f).toInt().coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt())
             output.putShort(pcm.toShort())
         }
+        outputPeakLevel = outputPeak
+        processedFrames += frames.toLong()
         inputBuffer.position(inputBuffer.limit())
         output.flip()
     }
@@ -117,6 +134,9 @@ class CoreEqMedia3AudioProcessor : BaseAudioProcessor() {
         floatScratch = ByteBuffer.allocateDirect(0).order(ByteOrder.nativeOrder())
         channels = 0
         sampleRateHz = 0
+        inputPeakLevel = 0.0f
+        outputPeakLevel = 0.0f
+        processedFrames = 0L
     }
 
     private external fun nativeCreate(): Long

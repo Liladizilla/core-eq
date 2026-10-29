@@ -118,6 +118,11 @@ internal class CoreEqMedia3Player(
         "positionMs" to player.currentPosition.coerceAtLeast(0L),
         "durationMs" to if (player.duration >= 0L) player.duration else null,
         "mediaUri" to player.currentMediaItem?.localConfiguration?.uri?.toString(),
+        "inputPeakLevel" to (processor?.inputPeakLevel ?: 0.0f),
+        "outputPeakLevel" to (processor?.outputPeakLevel ?: 0.0f),
+        "processedFrames" to (processor?.processedFrames ?: 0L),
+        "sampleRateHz" to (processor?.currentSampleRateHz ?: 0),
+        "channels" to (processor?.currentChannelCount ?: 0),
     )
 
     fun release() {

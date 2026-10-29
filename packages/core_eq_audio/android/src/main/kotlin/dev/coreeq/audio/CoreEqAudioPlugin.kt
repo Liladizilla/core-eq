@@ -74,6 +74,7 @@ class CoreEqAudioPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
                         lastError = message
                         mainHandler.post { channel.invokeMethod("mediaPlaybackError", message) }
                     }.also { mediaPlayer = it }
+                    player.applySettings(bandGainsDb, outputGainDb, bypassed)
                     player.play(uri)
                     lastError = null
                     result.success(player.status())

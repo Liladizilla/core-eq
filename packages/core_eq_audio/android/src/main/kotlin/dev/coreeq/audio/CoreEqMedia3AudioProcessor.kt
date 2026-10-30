@@ -91,15 +91,14 @@ class CoreEqMedia3AudioProcessor : BaseAudioProcessor() {
             output.flip()
             inputPeakLevel = peak
             outputPeakLevel = peak
-            val bypassSamples = output.duplicate().order(ByteOrder.LITTLE_ENDIAN)
-            var bypassSquares = 0.0
-            repeat(samples) {
-                val value = bypassSamples.short / 32768.0
-                bypassSquares += value * value
-            }
-            inputRmsLevel = kotlin.math.sqrt(bypassSquares / samples).toFloat()
-            outputRmsLevel = inputRmsLevel
-            signalDifferenceRms = 0.0f
+            val diagnostics = CoreEqPcmDiagnostics.measurePcm16(
+                inputBuffer.duplicate().order(ByteOrder.LITTLE_ENDIAN),
+                output.duplicate().order(ByteOrder.LITTLE_ENDIAN),
+                samples,
+            )
+            inputRmsLevel = diagnostics.inputRms
+            outputRmsLevel = diagnostics.outputRms
+            signalDifferenceRms = diagnostics.differenceRms
             limiterGain = 1.0f
             processedFrames += frames.toLong()
             inputBuffer.position(inputBuffer.limit())
@@ -151,22 +150,14 @@ class CoreEqMedia3AudioProcessor : BaseAudioProcessor() {
         }
         outputPeakLevel = outputPeak
         output.flip()
-        val originalSamples = inputBuffer.duplicate().order(ByteOrder.LITTLE_ENDIAN)
-        val processedSamples = output.duplicate().order(ByteOrder.LITTLE_ENDIAN)
-        var inputSquares = 0.0
-        var outputSquares = 0.0
-        var differenceSquares = 0.0
-        repeat(samples) {
-            val original = originalSamples.short / 32768.0
-            val processed = processedSamples.short / 32768.0
-            inputSquares += original * original
-            outputSquares += processed * processed
-            val difference = processed - original
-            differenceSquares += difference * difference
-        }
-        inputRmsLevel = kotlin.math.sqrt(inputSquares / samples).toFloat()
-        outputRmsLevel = kotlin.math.sqrt(outputSquares / samples).toFloat()
-        signalDifferenceRms = kotlin.math.sqrt(differenceSquares / samples).toFloat()
+        val diagnostics = CoreEqPcmDiagnostics.measurePcm16(
+            inputBuffer.duplicate().order(ByteOrder.LITTLE_ENDIAN),
+            output.duplicate().order(ByteOrder.LITTLE_ENDIAN),
+            samples,
+        )
+        inputRmsLevel = diagnostics.inputRms
+        outputRmsLevel = diagnostics.outputRms
+        signalDifferenceRms = diagnostics.differenceRms
         processedFrames += frames.toLong()
         inputBuffer.position(inputBuffer.limit())
     }

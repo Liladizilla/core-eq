@@ -99,18 +99,14 @@ class CoreEqMedia3AudioProcessor : BaseAudioProcessor() {
                 val index = frame * 2
                 val left = floatView.get(index)
                 val right = floatView.get(index + 1)
-                val mid = (left + right) * 0.5f
-                val side = (left - right) * 0.5f * 1.6f
-                floatView.put(index, mid + side)
-                floatView.put(index + 1, mid - side)
+                floatView.put(index, CoreEqPostProcessing.spatialLeft(left, right))
+                floatView.put(index + 1, CoreEqPostProcessing.spatialRight(left, right))
             }
         }
         var blockPeak = 0.0f
         repeat(samples) { blockPeak = maxOf(blockPeak, kotlin.math.abs(floatView.get(it))) }
         if (limiterEnabled) {
-            val targetGain = if (blockPeak > 0.9f) 0.9f / blockPeak else 1.0f
-            limiterGain = if (targetGain < limiterGain) targetGain
-                else limiterGain + (targetGain - limiterGain) * 0.15f
+            limiterGain = CoreEqPostProcessing.nextLimiterGain(limiterGain, blockPeak)
         } else {
             limiterGain = 1.0f
         }

@@ -168,6 +168,7 @@ class CoreEqMedia3AudioProcessor : BaseAudioProcessor() {
         outputRmsLevel = diagnostics.outputRms
         signalDifferenceRms = diagnostics.differenceRms
         processedFrames += frames.toLong()
+        lastProcessedUptimeMs = android.os.SystemClock.elapsedRealtime()
         inputBuffer.position(inputBuffer.limit())
     }
 

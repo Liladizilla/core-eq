@@ -23,6 +23,8 @@ internal class CoreEqMedia3Player(
     private val bandGainsDb = FloatArray(10)
     private var outputGainDb = 0.0f
     private var bypassed = false
+    private var limiterEnabled = true
+    private var spatialEnabled = false
     private val player: ExoPlayer
 
     init {
@@ -37,6 +39,8 @@ internal class CoreEqMedia3Player(
                 for (band in bandGainsDb.indices) eqProcessor.setBandGain(band, bandGainsDb[band])
                 eqProcessor.setOutputGain(outputGainDb)
                 eqProcessor.setBypassed(bypassed)
+                eqProcessor.setLimiterEnabled(limiterEnabled)
+                eqProcessor.setSpatialEnabled(spatialEnabled)
                 return DefaultAudioSink.Builder(context)
                     .setEnableFloatOutput(false)
                     .setAudioProcessors(arrayOf<AudioProcessor>(eqProcessor))
@@ -98,6 +102,16 @@ internal class CoreEqMedia3Player(
     fun setOutputGain(gainDb: Float): Boolean {
         outputGainDb = gainDb
         return processor?.setOutputGain(gainDb) ?: true
+    }
+
+    fun setLimiterEnabled(value: Boolean) {
+        limiterEnabled = value
+        processor?.setLimiterEnabled(value)
+    }
+
+    fun setSpatialEnabled(value: Boolean) {
+        spatialEnabled = value
+        processor?.setSpatialEnabled(value)
     }
 
     fun setBypassed(value: Boolean): Boolean {

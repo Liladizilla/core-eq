@@ -1,31 +1,65 @@
 # Headphone EQ diagnostic
 
-## Field report (2026-10-28)
+## Field report
 
-The owner tested with the generated test tone stopped, Bluetooth headphones connected, bypass changes unclear, and no noticeable bass-boost effect on music from another player.
+The owner reported that the generated test tone stopped during a Bluetooth headphone test, bypass behavior was unclear, and bass boost was not noticeable on music played in a separate music app.
 
-## What the code currently proves
+## Important distinction: separate player vs CORE-EQ player
 
-The Android plugin at `packages/core_eq_audio/android/src/main/kotlin/dev/coreeq/audio/CoreEqAudioPlugin.kt` creates its own `AudioTrack` and synthesizes a 440 Hz sine wave. Each block is passed to `nativeProcess` before being written to that track. The plugin explicitly states that it does not capture microphone or other-app audio. The Flutter audio facade also describes itself as generated-test-tone-only.
+CORE-EQ does **not** capture or process audio from another app. If music is playing in Spotify or a separate music player, CORE-EQ's EQ controls cannot change that stream. The generated test tone is a separate app-owned output path and is not a proxy for external-app processing.
 
-Therefore, the current repository does not contain a route that takes PCM from a separate music player and passes those samples through CORE-EQ's DSP. The owner's audible observation is real as a report, but it is not yet evidence that CORE-EQ processed the other app's signal. Possible explanations include Android/OEM audio effects, headphone app processing, a separate system equalizer, or an earlier test where the generated tone was still active.
+The Android build now also has an in-app local-file playback path using Media3. Only a file selected and played in CORE-EQ passes through the Media3 DSP processor. This is the path that must be used to validate audible EQ changes.
 
-## Why the existing 440 Hz test is weak for bass validation
+## Current processing route
 
-A 440 Hz sine wave is not a useful direct check of the 32 Hz, 64 Hz, and 125 Hz controls. The existing tone panel is useful for verifying that Android output and the DSP worker run, but it is not a comprehensive frequency-response test.
+For CORE-EQ's own local-file player, Media3 sends supported PCM16 mono/stereo audio (22.05–96 kHz) through the native C++ DSP chain. The current chain includes the 10-band EQ, output gain, bypass, output peak limiter, and optional mid/side widening. Bass boost is applied as an offset to the three lowest EQ bands. The generated test tone uses its own AudioTrack and native DSP session.
 
-## Next engineering work
+The player exposes input/output peak and RMS, signal-difference RMS, processed frame count, sample rate, and channel count. Difference RMS reports the total sample difference, not an EQ-only measurement. A non-zero value does not prove that the EQ curve is audible or desirable.
 
-1. Add selectable low-frequency test signals (for example 60 Hz, 100 Hz, and 440 Hz) and expose the selected frequency in status/UI.
-2. Add native DSP response tests that feed steady sine waves at each EQ band's center frequency and compare RMS output with flat/bypass output after smoothing settles.
-3. Keep the test tone labeled as an app-generated signal, separate from any claim about external-player processing.
-4. Investigate any future cross-app path as a separate Android integration project, with explicit API/device limitations and a measurable capture/process/output route. Do not try to silently capture another app's audio.
-5. For field verification, disable any OEM sound effects and headphone-app EQ, compare the same music segment at matched loudness, and test with CORE-EQ's generated tone stopped. Do not max every gain control; clipping protection can hide differences and high levels can damage hearing.
+## Correct Bluetooth/local-file validation
 
-## Acceptance criteria for the tone feature
+1. Stop the generated test tone.
+2. Connect the Bluetooth headphones and wait until Android reports them as the active media output.
+3. Open **LOCAL PLAYBACK / DSP PATH** inside CORE-EQ and choose a local music file. Do not use Spotify or another app for this test.
+4. Start playback at a low, comfortable volume. Confirm the position advances and sample rate/channel count appear.
+5. Set output gain to 0 dB, disable limiter and spatial widening, and leave bypass off.
+6. Choose a track with clear bass content. Raise only 32 Hz and 64 Hz to +6 dB. Keep all other EQ bands at 0 dB.
+7. Listen to the same short segment, then enable bypass without changing device volume. Compare active vs bypass. Repeat the comparison once.
+8. Check the diagnostics: processed frames should increase during playback; bypass should drive difference RMS to zero after the next processed blocks; active EQ should generally produce a non-zero difference when the source has energy in the boosted bands.
+9. Repeat with the phone speaker or wired headphones to isolate Bluetooth routing from the DSP path.
+10. Record device model, Android version, Bluetooth codec if visible, track format, and whether the EQ difference is audible.
 
-- Selected tone frequency is validated against a fixed safe list.
-- Frequency selection persists across stop/start and is reflected in UI status.
-- Tests demonstrate a measurable change when the matching EQ band is boosted and return to baseline in bypass.
-- Existing default 440 Hz behavior remains the default.
-- UI text makes clear that this test does not process Spotify or other apps.
+Do not max every control. Large boosts can cause clipping or limiter attenuation, making comparisons less useful and potentially unsafe for hearing.
+
+## Interpreting outcomes
+
+- **No sound from generated tone:** investigate AudioTrack startup, audio focus, device route, and the Android playback error/status.
+- **Tone works, but external music is unchanged:** expected; external-app audio is outside CORE-EQ's current scope.
+- **CORE-EQ local file plays, but processed frames remain at zero:** inspect Media3 processor attachment/configuration and status propagation.
+- **Processed frames increase and bypass difference RMS is zero, but active EQ is not audible:** inspect EQ coefficient/center-frequency behavior, gain mapping, source spectral content, output level, and headphone/app DSP settings.
+- **Local file works on speaker but not Bluetooth:** investigate Android route changes, Bluetooth device profile/codec, and Media3/AudioTrack behavior separately from DSP correctness.
+
+## Known limits
+
+- The generated tone supports 32, 64, 125, 250, 440, and 1000 Hz; 440 Hz remains the default.
+- The generated tone is not a frequency-response sweep or a substitute for local music playback.
+- The visual field is animated artwork driven by generated-tone peak status, not a live FFT spectrum analyzer.
+- No system-wide equalizer, microphone capture, or arbitrary other-app audio processing is implemented.
+- Automated CI cannot establish audible quality or Bluetooth routing on physical devices.
+
+## Result template
+
+| Field | Result |
+|---|---|
+| Device / Android version | |
+| CORE-EQ version / commit | |
+| Track format (sample rate / channels) | |
+| Output route / Bluetooth device | |
+| Generated tone start and stop | |
+| CORE-EQ local file playback | |
+| Processed frames increasing | |
+| Bypass comparison | |
+| Active EQ comparison | |
+| Difference RMS behavior | |
+| Speaker vs Bluetooth result | |
+| Notes / errors | |

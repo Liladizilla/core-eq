@@ -127,6 +127,10 @@ class CoreEqAudioPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
                 }
                 if (running) { result.success(status()); return }
                 try {
+                    // Keep the diagnostic tone isolated from the local music player.
+                    // Running two independent output paths at once can compete for
+                    // audio focus and makes listening tests difficult to interpret.
+                    mediaPlayer?.pause()
                     startPlayback(frequencyHz, amplitude)
                     result.success(status())
                 } catch (e: Exception) {

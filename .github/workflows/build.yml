@@ -40,6 +40,13 @@ jobs:
           fi
       - name: Apply CORE-EQ Android launcher branding
         run: bash scripts/apply_android_branding.sh
+      - name: Verify Android launcher branding resources
+        run: |
+          test -s android/app/src/main/res/drawable/ic_core_eq.xml
+          test -s android/app/src/main/res/drawable/ic_core_eq_foreground.xml
+          test -s android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
+          test -s android/app/src/main/res/values/core_eq_colors.xml
+          grep -q 'android:icon="@mipmap/ic_launcher"' android/app/src/main/AndroidManifest.xml
       - name: Resolve dependencies
         run: flutter pub get
       - name: Raise file_picker plugin compile SDK

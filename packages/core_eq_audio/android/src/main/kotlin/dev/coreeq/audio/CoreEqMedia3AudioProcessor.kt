@@ -17,6 +17,9 @@ class CoreEqMedia3AudioProcessor : BaseAudioProcessor() {
     private val bandGainsDb = FloatArray(10)
     private var outputGainDb = 0.0f
     private var bypassed = false
+    private var limiterEnabled = true
+    private var spatialEnabled = false
+    private var limiterGain = 1.0f
     private var floatScratch: ByteBuffer = ByteBuffer.allocateDirect(0).order(ByteOrder.nativeOrder())
     @Volatile var inputPeakLevel: Float = 0.0f
         private set
@@ -91,9 +94,29 @@ class CoreEqMedia3AudioProcessor : BaseAudioProcessor() {
         }
         val output = replaceOutputBuffer(inputBytes).order(ByteOrder.LITTLE_ENDIAN)
         floatView.position(0)
+        if (spatialEnabled && channels == 2) {
+            for (frame in 0 until frames) {
+                val index = frame * 2
+                val left = floatView.get(index)
+                val right = floatView.get(index + 1)
+                val mid = (left + right) * 0.5f
+                val side = (left - right) * 0.5f * 1.6f
+                floatView.put(index, mid + side)
+                floatView.put(index + 1, mid - side)
+            }
+        }
+        var blockPeak = 0.0f
+        repeat(samples) { blockPeak = maxOf(blockPeak, kotlin.math.abs(floatView.get(it))) }
+        if (limiterEnabled) {
+            val targetGain = if (blockPeak > 0.9f) 0.9f / blockPeak else 1.0f
+            limiterGain = if (targetGain < limiterGain) targetGain
+                else limiterGain + (targetGain - limiterGain) * 0.15f
+        } else {
+            limiterGain = 1.0f
+        }
         var outputPeak = 0.0f
         repeat(samples) {
-            val processedSample = floatView.get()
+            val processedSample = floatView.get() * limiterGain
             outputPeak = maxOf(outputPeak, kotlin.math.abs(processedSample))
             val sample = processedSample.coerceIn(-1.0f, 1.0f)
             val pcm = (sample * 32767.0f).toInt().coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt())
@@ -118,6 +141,10 @@ class CoreEqMedia3AudioProcessor : BaseAudioProcessor() {
         return engine == 0L || nativeSetOutputGain(engine, gainDb) == 0
     }
 
+    fun setLimiterEnabled(value: Boolean) { limiterEnabled = value }
+
+    fun setSpatialEnabled(value: Boolean) { spatialEnabled = value }
+
     fun setBypassed(value: Boolean): Boolean {
         bypassed = value
         return engine == 0L || nativeSetBypassed(engine, value) == 0
@@ -139,6 +166,7 @@ class CoreEqMedia3AudioProcessor : BaseAudioProcessor() {
         inputPeakLevel = 0.0f
         outputPeakLevel = 0.0f
         processedFrames = 0L
+        limiterGain = 1.0f
     }
 
     private external fun nativeCreate(): Long

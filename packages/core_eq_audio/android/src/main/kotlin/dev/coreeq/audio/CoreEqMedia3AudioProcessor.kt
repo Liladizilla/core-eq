@@ -88,6 +88,7 @@ class CoreEqMedia3AudioProcessor : BaseAudioProcessor() {
             val output = replaceOutputBuffer(inputBytes).order(ByteOrder.LITTLE_ENDIAN)
             val input = inputBuffer.duplicate().order(ByteOrder.LITTLE_ENDIAN)
             val peak = CoreEqPostProcessing.copyPcm16AndMeasurePeak(input, output, samples)
+            output.flip()
             inputPeakLevel = peak
             outputPeakLevel = peak
             val bypassSamples = output.duplicate().order(ByteOrder.LITTLE_ENDIAN)
@@ -102,7 +103,6 @@ class CoreEqMedia3AudioProcessor : BaseAudioProcessor() {
             limiterGain = 1.0f
             processedFrames += frames.toLong()
             inputBuffer.position(inputBuffer.limit())
-            output.flip()
             return
         }
 

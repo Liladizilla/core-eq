@@ -82,7 +82,13 @@ internal class CoreEqMedia3Player(
         player.seekTo(positionMs.coerceAtLeast(0L))
     }
 
-    fun applySettings(bands: FloatArray, outputGain: Float, isBypassed: Boolean) {
+    fun applySettings(
+        bands: FloatArray,
+        outputGain: Float,
+        isBypassed: Boolean,
+        isLimiterEnabled: Boolean,
+        isSpatialEnabled: Boolean,
+    ) {
         for (band in bandGainsDb.indices) {
             bandGainsDb[band] = bands.getOrElse(band) { 0.0f }
             processor?.setBandGain(band, bandGainsDb[band])
@@ -91,6 +97,10 @@ internal class CoreEqMedia3Player(
         bypassed = isBypassed
         processor?.setOutputGain(outputGainDb)
         processor?.setBypassed(bypassed)
+        limiterEnabled = isLimiterEnabled
+        spatialEnabled = isSpatialEnabled
+        processor?.setLimiterEnabled(limiterEnabled)
+        processor?.setSpatialEnabled(spatialEnabled)
     }
 
     fun setBandGain(band: Int, gainDb: Float): Boolean {

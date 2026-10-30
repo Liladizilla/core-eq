@@ -166,6 +166,7 @@ class CoreEqAudioPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
                     result.error("INVALID_EQ_PARAMETER", "Spatial enabled must be a boolean.", null)
                 } else {
                     spatialEnabled = enabled
+                    mediaPlayer?.setSpatialEnabled(enabled)
                     result.success(null)
                 }
             }
@@ -175,6 +176,7 @@ class CoreEqAudioPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
                     result.error("INVALID_EQ_PARAMETER", "Limiter enabled must be a boolean.", null)
                 } else {
                     limiterEnabled = enabled
+                    mediaPlayer?.setLimiterEnabled(enabled)
                     result.success(null)
                 }
             }

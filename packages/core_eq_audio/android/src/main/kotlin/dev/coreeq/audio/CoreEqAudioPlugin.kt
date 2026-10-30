@@ -298,14 +298,15 @@ class CoreEqAudioPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
             .setBufferSizeInBytes(maxOf(minBytes, bytesPerBlock * 2))
             .setTransferMode(AudioTrack.MODE_STREAM)
             .build()
+        // Publish ownership immediately. Any later startup failure is handled by
+        // stopPlayback(), including failures while allocating the PCM work buffer.
+        track = audioTrack
         check(audioTrack.state == AudioTrack.STATE_INITIALIZED) {
-            audioTrack.release()
             "Android AudioTrack initialization failed."
         }
 
         val pcm = ByteBuffer.allocateDirect(bytesPerBlock).order(ByteOrder.nativeOrder())
         val floats = pcm.asFloatBuffer()
-        track = audioTrack
         running = true
         lastError = null
         // A new playback session starts with unity limiter gain; never carry

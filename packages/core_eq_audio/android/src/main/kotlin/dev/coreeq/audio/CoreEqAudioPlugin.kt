@@ -366,7 +366,13 @@ class CoreEqAudioPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
             } catch (e: Exception) {
                 lastError = e.message ?: e.javaClass.simpleName
                 running = false
-                mainHandler.post { channel.invokeMethod("playbackError", lastError) }
+                mainHandler.post {
+                    channel.invokeMethod("playbackError", lastError)
+                    // A worker-side failure does not pass through the Flutter stop
+                    // method. Tear down the AudioTrack, focus request, and native
+                    // engine on the main thread after this worker has unwound.
+                    stopPlayback()
+                }
             } finally {
                 try { audioTrack.pause() } catch (_: Exception) {}
                 try { audioTrack.flush() } catch (_: Exception) {}

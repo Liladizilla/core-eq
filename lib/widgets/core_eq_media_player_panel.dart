@@ -154,6 +154,8 @@ class _CoreEqMediaPlayerPanelState extends State<CoreEqMediaPlayerPanel> {
                       processedFrames: _status.processedFrames,
                       sampleRateHz: _status.sampleRateHz,
                       channels: _status.channels,
+                      processorConfigured: _status.processorConfigured,
+                      lastProcessedUptimeMs: _status.lastProcessedUptimeMs,
                     )),
             onChangeEnd: duration == null || duration <= 0
                 ? null
@@ -185,8 +187,13 @@ class _CoreEqMediaPlayerPanelState extends State<CoreEqMediaPlayerPanel> {
             Text(_error!, style: const TextStyle(color: Color(0xFFFFBD72), fontSize: 10, height: 1.4)),
           ],
           const SizedBox(height: 8),
-          Text('ENGINE: MEDIA3 / NATIVE C++  •  STATE: ${_status.state.toUpperCase()}', style: const TextStyle(color: muted, fontSize: 8, letterSpacing: .4)),
+          Text('ENGINE: MEDIA3 / NATIVE C++  •  PLAYER: ${_status.state.toUpperCase()}  •  DSP: ${_status.processorConfigured ? 'CONFIGURED' : 'WAITING'}', style: const TextStyle(color: muted, fontSize: 8, letterSpacing: .4)),
           const SizedBox(height: 7),
+          Row(children: [
+            Expanded(child: Text('FRAMES ${_status.processedFrames}', style: const TextStyle(color: muted, fontSize: 9, fontFeatures: [FontFeature.tabularFigures()]))),
+            Expanded(child: Text(_status.lastProcessedUptimeMs > 0 ? 'DSP BLOCKS RECEIVED' : 'NO DSP BLOCKS', textAlign: TextAlign.end, style: TextStyle(color: _status.lastProcessedUptimeMs > 0 ? cyan : muted, fontSize: 9))),
+          ]),
+          const SizedBox(height: 6),
           Row(children: [
             Expanded(child: Text('IN ${(_status.inputPeakLevel * 100).toStringAsFixed(1)}%', style: const TextStyle(color: muted, fontSize: 9, fontFeatures: [FontFeature.tabularFigures()]))),
             Expanded(child: Text('DSP OUT ${(_status.outputPeakLevel * 100).toStringAsFixed(1)}%', style: TextStyle(color: _status.outputPeakLevel > 1.0 ? const Color(0xFFFFBD72) : cyan, fontSize: 9, fontFeatures: const [FontFeature.tabularFigures()]))),

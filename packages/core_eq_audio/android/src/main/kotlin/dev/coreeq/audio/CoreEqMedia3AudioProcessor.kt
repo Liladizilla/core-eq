@@ -12,13 +12,13 @@ import java.nio.ByteOrder
  */
 class CoreEqMedia3AudioProcessor : BaseAudioProcessor() {
     private var engine: Long = 0L
-    private var channels = 0
-    private var sampleRateHz = 0
+    @Volatile private var channels = 0
+    @Volatile private var sampleRateHz = 0
     private val bandGainsDb = FloatArray(10)
     private var outputGainDb = 0.0f
-    private var bypassed = false
-    private var limiterEnabled = true
-    private var spatialEnabled = false
+    @Volatile private var bypassed = false
+    @Volatile private var limiterEnabled = true
+    @Volatile private var spatialEnabled = false
     private var limiterGain = 1.0f
     private var floatScratch: ByteBuffer = ByteBuffer.allocateDirect(0).order(ByteOrder.nativeOrder())
     @Volatile var inputPeakLevel: Float = 0.0f

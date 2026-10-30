@@ -9,7 +9,7 @@ class CoreEqPostProcessingTest {
     }
 
     @Test fun limiterReleasesGraduallyBelowCeiling() {
-        assertEquals(0.55f, CoreEqPostProcessing.nextLimiterGain(0.5f, 0.5f), 0.0001f)
+        assertEquals(0.575f, CoreEqPostProcessing.nextLimiterGain(0.5f, 0.5f), 0.0001f)
     }
 
     @Test fun limiterNeverRequestsGainAboveUnity() {

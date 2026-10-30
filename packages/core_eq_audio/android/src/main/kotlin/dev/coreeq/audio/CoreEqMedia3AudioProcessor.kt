@@ -94,7 +94,7 @@ class CoreEqMedia3AudioProcessor : BaseAudioProcessor() {
         }
         val output = replaceOutputBuffer(inputBytes).order(ByteOrder.LITTLE_ENDIAN)
         floatView.position(0)
-        if (spatialEnabled && channels == 2) {
+        if (!bypassed && spatialEnabled && channels == 2) {
             for (frame in 0 until frames) {
                 val index = frame * 2
                 val left = floatView.get(index)
@@ -105,7 +105,7 @@ class CoreEqMedia3AudioProcessor : BaseAudioProcessor() {
         }
         var blockPeak = 0.0f
         repeat(samples) { blockPeak = maxOf(blockPeak, kotlin.math.abs(floatView.get(it))) }
-        if (limiterEnabled) {
+        if (!bypassed && limiterEnabled) {
             limiterGain = CoreEqPostProcessing.nextLimiterGain(limiterGain, blockPeak)
         } else {
             limiterGain = 1.0f

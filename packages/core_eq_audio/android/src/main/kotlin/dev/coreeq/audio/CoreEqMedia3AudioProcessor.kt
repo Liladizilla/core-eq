@@ -41,6 +41,7 @@ class CoreEqMedia3AudioProcessor : BaseAudioProcessor() {
         ensureEngine()
     }
 
+    @Synchronized
     private fun ensureEngine() {
         if (engine == 0L) {
             engine = nativeCreate()
@@ -49,6 +50,10 @@ class CoreEqMedia3AudioProcessor : BaseAudioProcessor() {
         }
     }
 
+    // Media3 may call configuration methods on its playback thread while Flutter
+    // sends controls on the platform thread. Serialize every native queue producer;
+    // nativeProcess remains lock-free on the audio path.
+    @Synchronized
     private fun applySettings() {
         for (band in bandGainsDb.indices) {
             check(nativeSetBandGain(engine, band, bandGainsDb[band], sampleRateHz) == 0) {
@@ -162,6 +167,7 @@ class CoreEqMedia3AudioProcessor : BaseAudioProcessor() {
         inputBuffer.position(inputBuffer.limit())
     }
 
+    @Synchronized
     fun setBandGain(band: Int, gainDb: Float): Boolean {
         if (band !in bandGainsDb.indices || !gainDb.isFinite() || gainDb !in -12.0f..12.0f) return false
         bandGainsDb[band] = gainDb
@@ -169,6 +175,7 @@ class CoreEqMedia3AudioProcessor : BaseAudioProcessor() {
             nativeSetBandGain(engine, band, gainDb, sampleRateHz) == 0
     }
 
+    @Synchronized
     fun setOutputGain(gainDb: Float): Boolean {
         if (!gainDb.isFinite() || gainDb !in -24.0f..6.0f) return false
         outputGainDb = gainDb
@@ -179,16 +186,19 @@ class CoreEqMedia3AudioProcessor : BaseAudioProcessor() {
 
     fun setSpatialEnabled(value: Boolean) { spatialEnabled = value }
 
+    @Synchronized
     fun setBypassed(value: Boolean): Boolean {
         bypassed = value
         return engine == 0L || nativeSetBypassed(engine, value) == 0
     }
 
+    @Synchronized
     override fun onFlush() {
         if (engine != 0L) nativeReset(engine)
         if (sampleRateHz > 0 && engine != 0L) applySettings()
     }
 
+    @Synchronized
     override fun onReset() {
         if (engine != 0L) {
             nativeDestroy(engine)

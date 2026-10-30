@@ -370,7 +370,7 @@ class _CoreVisualizerScreenState extends State<CoreVisualizerScreen>
       const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text('PROCESSING ENGINE', style: TextStyle(color: _text, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: .5)),
         SizedBox(height: 4),
-        Text('10-band EQ, bass boost, output gain and bypass run through native DSP. Limiting and mid/side stereo widening process generated-tone PCM only. Microphone and system audio are not connected.', style: TextStyle(color: _muted, fontSize: 10, height: 1.4)),
+        Text('10-band EQ, bass boost, output gain, limiting and mid/side stereo widening run through native DSP for the generated test tone and CORE-EQ local-file player. Microphone capture and audio from other apps are not connected.', style: TextStyle(color: _muted, fontSize: 10, height: 1.4)),
       ])),
     ])),
     const SizedBox(height: 12),

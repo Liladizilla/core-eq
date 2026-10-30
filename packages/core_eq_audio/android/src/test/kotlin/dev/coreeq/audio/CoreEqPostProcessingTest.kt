@@ -1,9 +1,35 @@
 package dev.coreeq.audio
 
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class CoreEqPostProcessingTest {
+    @Test fun bypassCopyPreservesEveryPcm16BitIncludingExtremes() {
+        val samples = shortArrayOf(Short.MIN_VALUE, -12345, -1, 0, 1, 12345, Short.MAX_VALUE)
+        val input = ByteBuffer.allocate(samples.size * 2).order(ByteOrder.LITTLE_ENDIAN)
+        val output = ByteBuffer.allocate(samples.size * 2).order(ByteOrder.LITTLE_ENDIAN)
+        samples.forEach(input::putShort)
+        input.flip()
+
+        val peak = CoreEqPostProcessing.copyPcm16AndMeasurePeak(input, output, samples.size)
+
+        assertEquals(1.0f, peak, 0.0001f)
+        output.flip()
+        samples.forEach { assertEquals(it, output.short) }
+        assertEquals(0, input.remaining())
+        assertEquals(0, output.remaining())
+    }
+
+    @Test fun bypassCopyMeasuresSilenceAsZero() {
+        val input = ByteBuffer.allocate(8).order(ByteOrder.LITTLE_ENDIAN)
+        val output = ByteBuffer.allocate(8).order(ByteOrder.LITTLE_ENDIAN)
+
+        assertEquals(0.0f, CoreEqPostProcessing.copyPcm16AndMeasurePeak(input, output, 4), 0.0f)
+    }
+
     @Test fun limiterAttacksImmediatelyAboveCeiling() {
         assertEquals(0.45f, CoreEqPostProcessing.nextLimiterGain(1.0f, 1.8f), 0.0001f)
     }

@@ -328,7 +328,7 @@ class CoreEqAudioPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
                     // Optional mid/side stereo width processing. The test signal has a small
                     // channel phase offset so widening is audible instead of mathematically
                     // inert on perfectly identical mono channels.
-                    if (spatialEnabled) {
+                    if (!bypassed && spatialEnabled) {
                         val width = 1.6f
                         for (frame in 0 until frames) {
                             val index = frame * channels
@@ -344,7 +344,7 @@ class CoreEqAudioPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
                     // -0.9 dBFS with fast attack and gradual release. It operates on
                     // the processed PCM buffer and never copies audio over the channel.
                     floats.position(0)
-                    if (limiterEnabled) {
+                    if (!bypassed && limiterEnabled) {
                         var blockPeak = 0.0f
                         for (i in 0 until frames * channels) {
                             blockPeak = maxOf(blockPeak, kotlin.math.abs(floats.get(i)))

@@ -218,6 +218,7 @@ class CoreEqMedia3AudioProcessor : BaseAudioProcessor() {
         outputRmsLevel = 0.0f
         signalDifferenceRms = 0.0f
         processedFrames = 0L
+        lastProcessedUptimeMs = 0L
         limiterGain = 1.0f
     }
 

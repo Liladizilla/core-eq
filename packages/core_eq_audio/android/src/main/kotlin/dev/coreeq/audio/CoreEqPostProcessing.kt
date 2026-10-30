@@ -1,6 +1,6 @@
 package dev.coreeq.audio
 
-/** Pure post-DSP math kept separate so limiter/spatial behavior can be JVM-tested. */
+/** Allocation-free post-DSP math for the real-time audio thread. */
 internal object CoreEqPostProcessing {
     const val LIMITER_CEILING = 0.9f
     private const val LIMITER_RELEASE = 0.15f
@@ -13,9 +13,15 @@ internal object CoreEqPostProcessing {
         return if (target < current) target else current + (target - current) * LIMITER_RELEASE
     }
 
-    fun spatialSample(left: Float, right: Float): Pair<Float, Float> {
+    fun spatialLeft(left: Float, right: Float): Float {
         val mid = (left + right) * 0.5f
         val side = (left - right) * 0.5f * SPATIAL_WIDTH
-        return Pair(mid + side, mid - side)
+        return mid + side
+    }
+
+    fun spatialRight(left: Float, right: Float): Float {
+        val mid = (left + right) * 0.5f
+        val side = (left - right) * 0.5f * SPATIAL_WIDTH
+        return mid - side
     }
 }

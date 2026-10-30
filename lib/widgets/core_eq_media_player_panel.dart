@@ -146,6 +146,11 @@ class _CoreEqMediaPlayerPanelState extends State<CoreEqMediaPlayerPanel> {
                       positionMs: value.round(),
                       durationMs: _status.durationMs,
                       mediaUri: _status.mediaUri,
+                      inputPeakLevel: _status.inputPeakLevel,
+                      outputPeakLevel: _status.outputPeakLevel,
+                      processedFrames: _status.processedFrames,
+                      sampleRateHz: _status.sampleRateHz,
+                      channels: _status.channels,
                     )),
             onChangeEnd: duration == null || duration <= 0
                 ? null
@@ -178,6 +183,16 @@ class _CoreEqMediaPlayerPanelState extends State<CoreEqMediaPlayerPanel> {
           ],
           const SizedBox(height: 8),
           Text('ENGINE: MEDIA3 / NATIVE C++  •  STATE: ${_status.state.toUpperCase()}', style: const TextStyle(color: muted, fontSize: 8, letterSpacing: .4)),
+          const SizedBox(height: 7),
+          Row(children: [
+            Expanded(child: Text('IN ${(_status.inputPeakLevel * 100).toStringAsFixed(1)}%', style: const TextStyle(color: muted, fontSize: 9, fontFeatures: [FontFeature.tabularFigures()]))),
+            Expanded(child: Text('DSP OUT ${(_status.outputPeakLevel * 100).toStringAsFixed(1)}%', style: TextStyle(color: _status.outputPeakLevel > 1.0 ? const Color(0xFFFFBD72) : cyan, fontSize: 9, fontFeatures: const [FontFeature.tabularFigures()]))),
+            Text(_status.sampleRateHz > 0 ? '${_status.sampleRateHz ~/ 1000}k / ${_status.channels}ch' : 'DSP idle', style: const TextStyle(color: muted, fontSize: 9)),
+          ]),
+          if (_status.processedFrames > 0 && _status.outputPeakLevel > 1.0) ...[
+            const SizedBox(height: 5),
+            const Text('OUTPUT CLIPPING: reduce EQ boost or lower output gain.', style: TextStyle(color: Color(0xFFFFBD72), fontSize: 9)),
+          ],
         ],
       ),
     );

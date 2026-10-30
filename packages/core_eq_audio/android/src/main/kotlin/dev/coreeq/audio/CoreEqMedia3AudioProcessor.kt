@@ -25,6 +25,12 @@ class CoreEqMedia3AudioProcessor : BaseAudioProcessor() {
         private set
     @Volatile var outputPeakLevel: Float = 0.0f
         private set
+    @Volatile var inputRmsLevel: Float = 0.0f
+        private set
+    @Volatile var outputRmsLevel: Float = 0.0f
+        private set
+    @Volatile var signalDifferenceRms: Float = 0.0f
+        private set
     @Volatile var processedFrames: Long = 0L
         private set
     val currentSampleRateHz: Int get() = sampleRateHz
@@ -82,12 +88,21 @@ class CoreEqMedia3AudioProcessor : BaseAudioProcessor() {
             val output = replaceOutputBuffer(inputBytes).order(ByteOrder.LITTLE_ENDIAN)
             val input = inputBuffer.duplicate().order(ByteOrder.LITTLE_ENDIAN)
             val peak = CoreEqPostProcessing.copyPcm16AndMeasurePeak(input, output, samples)
+            output.flip()
             inputPeakLevel = peak
             outputPeakLevel = peak
+            val bypassSamples = output.duplicate().order(ByteOrder.LITTLE_ENDIAN)
+            var bypassSquares = 0.0
+            repeat(samples) {
+                val value = bypassSamples.short / 32768.0
+                bypassSquares += value * value
+            }
+            inputRmsLevel = kotlin.math.sqrt(bypassSquares / samples).toFloat()
+            outputRmsLevel = inputRmsLevel
+            signalDifferenceRms = 0.0f
             limiterGain = 1.0f
             processedFrames += frames.toLong()
             inputBuffer.position(inputBuffer.limit())
-            output.flip()
             return
         }
 
@@ -135,9 +150,25 @@ class CoreEqMedia3AudioProcessor : BaseAudioProcessor() {
             output.putShort(pcm.toShort())
         }
         outputPeakLevel = outputPeak
+        output.flip()
+        val originalSamples = inputBuffer.duplicate().order(ByteOrder.LITTLE_ENDIAN)
+        val processedSamples = output.duplicate().order(ByteOrder.LITTLE_ENDIAN)
+        var inputSquares = 0.0
+        var outputSquares = 0.0
+        var differenceSquares = 0.0
+        repeat(samples) {
+            val original = originalSamples.short / 32768.0
+            val processed = processedSamples.short / 32768.0
+            inputSquares += original * original
+            outputSquares += processed * processed
+            val difference = processed - original
+            differenceSquares += difference * difference
+        }
+        inputRmsLevel = kotlin.math.sqrt(inputSquares / samples).toFloat()
+        outputRmsLevel = kotlin.math.sqrt(outputSquares / samples).toFloat()
+        signalDifferenceRms = kotlin.math.sqrt(differenceSquares / samples).toFloat()
         processedFrames += frames.toLong()
         inputBuffer.position(inputBuffer.limit())
-        output.flip()
     }
 
     fun setBandGain(band: Int, gainDb: Float): Boolean {
@@ -177,6 +208,9 @@ class CoreEqMedia3AudioProcessor : BaseAudioProcessor() {
         sampleRateHz = 0
         inputPeakLevel = 0.0f
         outputPeakLevel = 0.0f
+        inputRmsLevel = 0.0f
+        outputRmsLevel = 0.0f
+        signalDifferenceRms = 0.0f
         processedFrames = 0L
         limiterGain = 1.0f
     }

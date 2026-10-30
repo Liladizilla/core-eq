@@ -158,6 +158,9 @@ final class CoreEqMediaStatus {
     required this.mediaUri,
     this.inputPeakLevel = 0.0,
     this.outputPeakLevel = 0.0,
+    this.inputRmsLevel = 0.0,
+    this.outputRmsLevel = 0.0,
+    this.signalDifferenceRms = 0.0,
     this.processedFrames = 0,
     this.sampleRateHz = 0,
     this.channels = 0,
@@ -171,6 +174,9 @@ final class CoreEqMediaStatus {
   final String? mediaUri;
   final double inputPeakLevel;
   final double outputPeakLevel;
+  final double inputRmsLevel;
+  final double outputRmsLevel;
+  final double signalDifferenceRms;
   final int processedFrames;
   final int sampleRateHz;
   final int channels;
@@ -184,6 +190,9 @@ final class CoreEqMediaStatus {
     mediaUri: map['mediaUri'] is String ? map['mediaUri']! as String : null,
     inputPeakLevel: _finiteLevel(map['inputPeakLevel']),
     outputPeakLevel: _finiteLevel(map['outputPeakLevel']),
+    inputRmsLevel: _finiteLevel(map['inputRmsLevel']),
+    outputRmsLevel: _finiteLevel(map['outputRmsLevel']),
+    signalDifferenceRms: _finiteLevel(map['signalDifferenceRms']),
     processedFrames: map['processedFrames'] is num ? (map['processedFrames']! as num).toInt().clamp(0, 1 << 62) : 0,
     sampleRateHz: map['sampleRateHz'] is num ? (map['sampleRateHz']! as num).toInt() : 0,
     channels: map['channels'] is num ? (map['channels']! as num).toInt() : 0,

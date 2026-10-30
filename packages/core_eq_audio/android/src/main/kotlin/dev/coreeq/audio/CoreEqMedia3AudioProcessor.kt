@@ -35,6 +35,9 @@ class CoreEqMedia3AudioProcessor : BaseAudioProcessor() {
         private set
     val currentSampleRateHz: Int get() = sampleRateHz
     val currentChannelCount: Int get() = channels
+    val isConfigured: Boolean get() = sampleRateHz > 0 && channels in 1..2
+    @Volatile var lastProcessedUptimeMs: Long = 0L
+        private set
 
     init {
         System.loadLibrary("core_eq")

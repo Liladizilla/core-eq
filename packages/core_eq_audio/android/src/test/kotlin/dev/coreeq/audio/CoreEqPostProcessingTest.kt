@@ -21,14 +21,12 @@ class CoreEqPostProcessingTest {
     }
 
     @Test fun spatialProcessingPreservesCenterSignal() {
-        val result = CoreEqPostProcessing.spatialSample(0.4f, 0.4f)
-        assertEquals(0.4f, result.first, 0.0001f)
-        assertEquals(0.4f, result.second, 0.0001f)
+        assertEquals(0.4f, CoreEqPostProcessing.spatialLeft(0.4f, 0.4f), 0.0001f)
+        assertEquals(0.4f, CoreEqPostProcessing.spatialRight(0.4f, 0.4f), 0.0001f)
     }
 
     @Test fun spatialProcessingExpandsSideSignalSymmetrically() {
-        val result = CoreEqPostProcessing.spatialSample(0.5f, -0.5f)
-        assertEquals(0.8f, result.first, 0.0001f)
-        assertEquals(-0.8f, result.second, 0.0001f)
+        assertEquals(0.8f, CoreEqPostProcessing.spatialLeft(0.5f, -0.5f), 0.0001f)
+        assertEquals(-0.8f, CoreEqPostProcessing.spatialRight(0.5f, -0.5f), 0.0001f)
     }
 }

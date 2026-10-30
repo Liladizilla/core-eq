@@ -148,6 +148,9 @@ class _CoreEqMediaPlayerPanelState extends State<CoreEqMediaPlayerPanel> {
                       mediaUri: _status.mediaUri,
                       inputPeakLevel: _status.inputPeakLevel,
                       outputPeakLevel: _status.outputPeakLevel,
+                      inputRmsLevel: _status.inputRmsLevel,
+                      outputRmsLevel: _status.outputRmsLevel,
+                      signalDifferenceRms: _status.signalDifferenceRms,
                       processedFrames: _status.processedFrames,
                       sampleRateHz: _status.sampleRateHz,
                       channels: _status.channels,
@@ -188,6 +191,12 @@ class _CoreEqMediaPlayerPanelState extends State<CoreEqMediaPlayerPanel> {
             Expanded(child: Text('IN ${(_status.inputPeakLevel * 100).toStringAsFixed(1)}%', style: const TextStyle(color: muted, fontSize: 9, fontFeatures: [FontFeature.tabularFigures()]))),
             Expanded(child: Text('DSP OUT ${(_status.outputPeakLevel * 100).toStringAsFixed(1)}%', style: TextStyle(color: _status.outputPeakLevel > 1.0 ? const Color(0xFFFFBD72) : cyan, fontSize: 9, fontFeatures: const [FontFeature.tabularFigures()]))),
             Text(_status.sampleRateHz > 0 ? '${_status.sampleRateHz ~/ 1000}k / ${_status.channels}ch' : 'DSP idle', style: const TextStyle(color: muted, fontSize: 9)),
+          ]),
+          const SizedBox(height: 6),
+          Row(children: [
+            Expanded(child: Text('IN RMS ${(_status.inputRmsLevel * 100).toStringAsFixed(2)}%', style: const TextStyle(color: muted, fontSize: 9, fontFeatures: [FontFeature.tabularFigures()]))),
+            Expanded(child: Text('OUT RMS ${(_status.outputRmsLevel * 100).toStringAsFixed(2)}%', style: const TextStyle(color: muted, fontSize: 9, fontFeatures: [FontFeature.tabularFigures()]))),
+            Expanded(child: Text('Δ RMS ${(_status.signalDifferenceRms * 100).toStringAsFixed(3)}%', textAlign: TextAlign.end, style: TextStyle(color: _status.signalDifferenceRms > 0.0001 ? cyan : muted, fontSize: 9, fontFeatures: const [FontFeature.tabularFigures()]))),
           ]),
           if (_status.processedFrames > 0 && _status.outputPeakLevel > 1.0) ...[
             const SizedBox(height: 5),

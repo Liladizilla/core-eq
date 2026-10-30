@@ -13,6 +13,9 @@ void main() {
         'mediaUri': 'file:///music/test.flac',
         'inputPeakLevel': 0.42,
         'outputPeakLevel': 1.08,
+        'inputRmsLevel': 0.21,
+        'outputRmsLevel': 0.34,
+        'signalDifferenceRms': 0.17,
         'processedFrames': 48000,
         'sampleRateHz': 48000,
         'channels': 2,
@@ -22,6 +25,9 @@ void main() {
       expect(status.state, 'ready');
       expect(status.inputPeakLevel, closeTo(0.42, 0.0001));
       expect(status.outputPeakLevel, closeTo(1.08, 0.0001));
+      expect(status.inputRmsLevel, closeTo(0.21, 0.0001));
+      expect(status.outputRmsLevel, closeTo(0.34, 0.0001));
+      expect(status.signalDifferenceRms, closeTo(0.17, 0.0001));
       expect(status.processedFrames, 48000);
       expect(status.sampleRateHz, 48000);
       expect(status.channels, 2);
@@ -36,6 +42,9 @@ void main() {
 
       expect(status.inputPeakLevel, 0);
       expect(status.outputPeakLevel, 0);
+      expect(status.inputRmsLevel, 0);
+      expect(status.outputRmsLevel, 0);
+      expect(status.signalDifferenceRms, 0);
       expect(status.processedFrames, 0);
       expect(status.sampleRateHz, 0);
       expect(status.channels, 0);
@@ -46,11 +55,17 @@ void main() {
       final status = CoreEqMediaStatus.fromMap(<Object?, Object?>{
         'inputPeakLevel': double.nan,
         'outputPeakLevel': -0.5,
+        'inputRmsLevel': double.nan,
+        'outputRmsLevel': -0.2,
+        'signalDifferenceRms': double.infinity,
         'processedFrames': -10,
       });
 
       expect(status.inputPeakLevel, 0);
       expect(status.outputPeakLevel, 0);
+      expect(status.inputRmsLevel, 0);
+      expect(status.outputRmsLevel, 0);
+      expect(status.signalDifferenceRms, 0);
       expect(status.processedFrames, 0);
     });
   });

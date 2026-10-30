@@ -75,6 +75,22 @@ class CoreEqMedia3AudioProcessor : BaseAudioProcessor() {
         }
         val samples = inputBytes / 2
         val frames = samples / channels
+
+        // A true bypass is a byte-for-byte PCM copy. Avoid float conversion,
+        // native DSP, spatial processing and limiter math entirely.
+        if (bypassed) {
+            val output = replaceOutputBuffer(inputBytes).order(ByteOrder.LITTLE_ENDIAN)
+            val input = inputBuffer.duplicate().order(ByteOrder.LITTLE_ENDIAN)
+            val peak = CoreEqPostProcessing.copyPcm16AndMeasurePeak(input, output, samples)
+            inputPeakLevel = peak
+            outputPeakLevel = peak
+            limiterGain = 1.0f
+            processedFrames += frames.toLong()
+            inputBuffer.position(inputBuffer.limit())
+            output.flip()
+            return
+        }
+
         val requiredFloatBytes = samples * 4
         if (floatScratch.capacity() < requiredFloatBytes) {
             floatScratch = ByteBuffer.allocateDirect(requiredFloatBytes).order(ByteOrder.nativeOrder())
@@ -94,7 +110,7 @@ class CoreEqMedia3AudioProcessor : BaseAudioProcessor() {
         }
         val output = replaceOutputBuffer(inputBytes).order(ByteOrder.LITTLE_ENDIAN)
         floatView.position(0)
-        if (!bypassed && spatialEnabled && channels == 2) {
+        if (spatialEnabled && channels == 2) {
             for (frame in 0 until frames) {
                 val index = frame * 2
                 val left = floatView.get(index)
@@ -105,7 +121,7 @@ class CoreEqMedia3AudioProcessor : BaseAudioProcessor() {
         }
         var blockPeak = 0.0f
         repeat(samples) { blockPeak = maxOf(blockPeak, kotlin.math.abs(floatView.get(it))) }
-        if (!bypassed && limiterEnabled) {
+        if (limiterEnabled) {
             limiterGain = CoreEqPostProcessing.nextLimiterGain(limiterGain, blockPeak)
         } else {
             limiterGain = 1.0f

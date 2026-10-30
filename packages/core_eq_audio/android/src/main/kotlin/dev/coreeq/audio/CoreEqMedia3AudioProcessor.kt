@@ -99,9 +99,8 @@ class CoreEqMedia3AudioProcessor : BaseAudioProcessor() {
                 val index = frame * 2
                 val left = floatView.get(index)
                 val right = floatView.get(index + 1)
-                val widened = CoreEqPostProcessing.spatialSample(left, right)
-                floatView.put(index, widened.first)
-                floatView.put(index + 1, widened.second)
+                floatView.put(index, CoreEqPostProcessing.spatialLeft(left, right))
+                floatView.put(index + 1, CoreEqPostProcessing.spatialRight(left, right))
             }
         }
         var blockPeak = 0.0f

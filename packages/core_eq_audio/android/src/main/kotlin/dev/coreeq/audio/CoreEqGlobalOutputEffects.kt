@@ -31,6 +31,12 @@ internal class CoreEqGlobalOutputEffects : Closeable {
             "bandLevelRangeMb" to runCatching {
                 eq?.bandLevelRange?.map { it.toInt() } ?: emptyList<Int>()
             }.getOrDefault(emptyList<Int>()),
+            "bandLevelsMb" to runCatching {
+                val count = eq?.numberOfBands?.toInt() ?: 0
+                (0 until count).map { index -> eq!!.getBandLevel(index.toShort()).toInt() }
+            }.getOrDefault(emptyList<Int>()),
+            "bassStrength" to runCatching { bass?.roundedStrength?.toInt() ?: 0 }.getOrDefault(0),
+            "bassStrengthSupported" to runCatching { bass?.strengthSupported == true }.getOrDefault(false),
             "error" to lastError,
             "scope" to "OEM-dependent global output mix; not guaranteed for every device or route"
         )

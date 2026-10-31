@@ -90,13 +90,20 @@ internal class CoreEqMedia3Player(
         isSpatialEnabled: Boolean,
     ) {
         for (band in bandGainsDb.indices) {
-            bandGainsDb[band] = bands.getOrElse(band) { 0.0f }
-            processor?.setBandGain(band, bandGainsDb[band])
+            val requestedGain = bands.getOrElse(band) { 0.0f }
+            require(processor?.setBandGain(band, requestedGain) != false) {
+                "Media3 DSP rejected band $band while applying saved settings."
+            }
+            bandGainsDb[band] = requestedGain
+        }
+        require(processor?.setOutputGain(outputGain) != false) {
+            "Media3 DSP rejected saved output gain."
         }
         outputGainDb = outputGain
+        require(processor?.setBypassed(isBypassed) != false) {
+            "Media3 DSP rejected saved bypass state."
+        }
         bypassed = isBypassed
-        processor?.setOutputGain(outputGainDb)
-        processor?.setBypassed(bypassed)
         limiterEnabled = isLimiterEnabled
         spatialEnabled = isSpatialEnabled
         processor?.setLimiterEnabled(limiterEnabled)
@@ -105,13 +112,15 @@ internal class CoreEqMedia3Player(
 
     fun setBandGain(band: Int, gainDb: Float): Boolean {
         if (band !in bandGainsDb.indices) return false
+        if (processor?.setBandGain(band, gainDb) == false) return false
         bandGainsDb[band] = gainDb
-        return processor?.setBandGain(band, gainDb) ?: true
+        return true
     }
 
     fun setOutputGain(gainDb: Float): Boolean {
+        if (processor?.setOutputGain(gainDb) == false) return false
         outputGainDb = gainDb
-        return processor?.setOutputGain(gainDb) ?: true
+        return true
     }
 
     fun setLimiterEnabled(value: Boolean) {
@@ -125,8 +134,9 @@ internal class CoreEqMedia3Player(
     }
 
     fun setBypassed(value: Boolean): Boolean {
+        if (processor?.setBypassed(value) == false) return false
         bypassed = value
-        return processor?.setBypassed(value) ?: true
+        return true
     }
 
     fun status(): Map<String, Any?> = mapOf(

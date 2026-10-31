@@ -5,6 +5,8 @@ import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.media.AudioFormat
 import android.media.AudioTrack
+import android.media.AudioDeviceCallback
+import android.media.AudioDeviceInfo
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
@@ -25,6 +27,7 @@ class CoreEqAudioPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
     @Volatile private var worker: Thread? = null
     private var track: AudioTrack? = null
     private var audioManager: AudioManager? = null
+    private var routeCallback: AudioDeviceCallback? = null
     private var audioFocusRequest: AudioFocusRequest? = null
     private var hasAudioFocus = false
     private val audioFocusListener = AudioManager.OnAudioFocusChangeListener { change ->
@@ -42,6 +45,7 @@ class CoreEqAudioPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
     }
     private var engine: Long = 0L
     private var mediaPlayer: CoreEqMedia3Player? = null
+    private val globalOutputEffects = CoreEqGlobalOutputEffects()
     private var lastError: String? = null
     @Volatile private var toneFrequencyHz = 440
     @Volatile private var toneAmplitude = 0.06f
@@ -58,6 +62,19 @@ class CoreEqAudioPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
         appContext = binding.applicationContext
         channel = MethodChannel(binding.binaryMessenger, "core_eq_audio")
         channel.setMethodCallHandler(this)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val manager = appContext.getSystemService(android.content.Context.AUDIO_SERVICE) as AudioManager
+            val callback = object : AudioDeviceCallback() {
+                override fun onAudioDevicesAdded(addedDevices: Array<out AudioDeviceInfo>) {
+                    mainHandler.post { channel.invokeMethod("audioRouteChanged", audioRouteStatus()) }
+                }
+                override fun onAudioDevicesRemoved(removedDevices: Array<out AudioDeviceInfo>) {
+                    mainHandler.post { channel.invokeMethod("audioRouteChanged", audioRouteStatus()) }
+                }
+            }
+            routeCallback = callback
+            manager.registerAudioDeviceCallback(callback, mainHandler)
+        }
     }
 
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
@@ -114,6 +131,49 @@ class CoreEqAudioPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
                 "isPlaying" to false, "playWhenReady" to false, "state" to "idle",
                 "positionMs" to 0L, "durationMs" to null, "mediaUri" to null
             ))
+            "globalEffectCapabilities" -> result.success(globalOutputEffects.probe())
+            "audioRouteStatus" -> result.success(audioRouteStatus())
+            "setGlobalEffectsEnabled" -> {
+                val enabled = call.argument<Boolean>("enabled")
+                if (enabled == null) {
+                    result.error("INVALID_EQ_PARAMETER", "Global equalizer enabled must be a boolean.", null)
+                } else if (globalOutputEffects.setEnabled(enabled)) {
+                    result.success(globalOutputEffects.probe())
+                } else {
+                    result.error("GLOBAL_EFFECT_UNAVAILABLE", "This Android device did not accept the global output equalizer request.", globalOutputEffects.probe())
+                }
+            }
+            "setGlobalBassBoostEnabled" -> {
+                val enabled = call.argument<Boolean>("enabled")
+                if (enabled == null) {
+                    result.error("INVALID_EQ_PARAMETER", "Global bass boost enabled must be a boolean.", null)
+                } else if (globalOutputEffects.setBassBoostEnabled(enabled)) {
+                    result.success(globalOutputEffects.probe())
+                } else {
+                    result.error("GLOBAL_EFFECT_UNAVAILABLE", "This Android device did not accept the global output bass boost request.", globalOutputEffects.probe())
+                }
+            }
+            "setGlobalBandGain" -> {
+                val band = call.argument<Int>("band")
+                val gainDb = call.argument<Double>("gainDb")
+                if (band == null || gainDb == null || band !in 0..9 || !gainDb.isFinite() || gainDb !in -12.0..12.0) {
+                    result.error("INVALID_EQ_PARAMETER", "Band must be 0..9 and gain must be -12..12 dB.", null)
+                } else if (globalOutputEffects.setBandGain(band, gainDb.toFloat())) {
+                    result.success(globalOutputEffects.probe())
+                } else {
+                    result.error("GLOBAL_EFFECT_UNAVAILABLE", "The OEM global equalizer rejected this band update.", globalOutputEffects.probe())
+                }
+            }
+            "setGlobalBassBoostStrength" -> {
+                val strength = call.argument<Int>("strength")
+                if (strength == null || strength !in 0..1000) {
+                    result.error("INVALID_EQ_PARAMETER", "Bass boost strength must be 0..1000.", null)
+                } else if (globalOutputEffects.setBassBoostStrength(strength)) {
+                    result.success(globalOutputEffects.probe())
+                } else {
+                    result.error("GLOBAL_EFFECT_UNAVAILABLE", "This device does not expose adjustable global bass boost.", globalOutputEffects.probe())
+                }
+            }
             "startTestTone" -> {
                 val frequencyHz = call.argument<Int>("frequencyHz") ?: 440
                 val amplitude = call.argument<Double>("amplitude")?.toFloat() ?: 0.06f
@@ -151,11 +211,28 @@ class CoreEqAudioPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
                     !gainDb.isFinite() || gainDb !in -12.0..12.0) {
                     result.error("INVALID_EQ_PARAMETER", "Band must be 0..9 and gain must be -12..12 dB.", null)
                 } else {
-                    bandGainsDb[band] = gainDb.toFloat()
-                    val code = if (engine == 0L) 0 else nativeSetBandGain(engine, band, gainDb.toFloat())
+                    val previousGain = bandGainsDb[band]
+                    val nativeCode = if (engine == 0L) 0 else nativeSetBandGain(engine, band, gainDb.toFloat())
+                    if (nativeCode != 0) {
+                        result.error(
+                            "NATIVE_EQ_REJECTED",
+                            "Native DSP rejected band $band update (native status $nativeCode).",
+                            mapOf("component" to "native", "status" to nativeCode, "band" to band)
+                        )
+                        return
+                    }
                     val mediaOk = mediaPlayer?.setBandGain(band, gainDb.toFloat()) ?: true
-                    if (code == 0 && mediaOk) result.success(null)
-                    else result.error("NATIVE_EQ_REJECTED", "Native DSP rejected band update (status $code).", null)
+                    if (!mediaOk) {
+                        if (engine != 0L) nativeSetBandGain(engine, band, previousGain)
+                        result.error(
+                            "MEDIA3_EQ_REJECTED",
+                            "Media3 DSP rejected band $band update; the native setting was rolled back.",
+                            mapOf("component" to "media3", "band" to band)
+                        )
+                        return
+                    }
+                    bandGainsDb[band] = gainDb.toFloat()
+                    result.success(null)
                 }
             }
             "setOutputGain" -> {
@@ -163,11 +240,28 @@ class CoreEqAudioPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
                 if (gainDb == null || !gainDb.isFinite() || gainDb !in -24.0..6.0) {
                     result.error("INVALID_EQ_PARAMETER", "Output gain must be -24..6 dB.", null)
                 } else {
-                    outputGainDb = gainDb.toFloat()
+                    val previousGain = outputGainDb
                     val code = if (engine == 0L) 0 else nativeSetOutputGain(engine, gainDb.toFloat())
+                    if (code != 0) {
+                        result.error(
+                            "NATIVE_EQ_REJECTED",
+                            "Native DSP rejected output gain (native status $code).",
+                            mapOf("component" to "native", "status" to code)
+                        )
+                        return
+                    }
                     val mediaOk = mediaPlayer?.setOutputGain(gainDb.toFloat()) ?: true
-                    if (code == 0 && mediaOk) result.success(null)
-                    else result.error("NATIVE_EQ_REJECTED", "Native DSP rejected output gain (status $code).", null)
+                    if (!mediaOk) {
+                        if (engine != 0L) nativeSetOutputGain(engine, previousGain)
+                        result.error(
+                            "MEDIA3_EQ_REJECTED",
+                            "Media3 DSP rejected output gain; the native setting was rolled back.",
+                            mapOf("component" to "media3")
+                        )
+                        return
+                    }
+                    outputGainDb = gainDb.toFloat()
+                    result.success(null)
                 }
             }
             "setSpatialEnabled" -> {
@@ -195,15 +289,74 @@ class CoreEqAudioPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
                 if (bypassed == null) {
                     result.error("INVALID_EQ_PARAMETER", "Bypass must be a boolean.", null)
                 } else {
-                    this.bypassed = bypassed
+                    val previousBypass = this.bypassed
                     val code = if (engine == 0L) 0 else nativeSetBypassed(engine, bypassed)
+                    if (code != 0) {
+                        result.error(
+                            "NATIVE_EQ_REJECTED",
+                            "Native DSP rejected bypass update (native status $code).",
+                            mapOf("component" to "native", "status" to code)
+                        )
+                        return
+                    }
                     val mediaOk = mediaPlayer?.setBypassed(bypassed) ?: true
-                    if (code == 0 && mediaOk) result.success(null)
-                    else result.error("NATIVE_EQ_REJECTED", "Native DSP rejected bypass update (status $code).", null)
+                    if (!mediaOk) {
+                        if (engine != 0L) nativeSetBypassed(engine, previousBypass)
+                        result.error(
+                            "MEDIA3_EQ_REJECTED",
+                            "Media3 DSP rejected bypass update; the native setting was rolled back.",
+                            mapOf("component" to "media3")
+                        )
+                        return
+                    }
+                    this.bypassed = bypassed
+                    result.success(null)
                 }
             }
             else -> result.notImplemented()
         }
+    }
+
+    private fun audioRouteStatus(): Map<String, Any?> {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+            return mapOf("supported" to false, "outputs" to emptyList<Map<String, Any?>>())
+        }
+        val manager = appContext.getSystemService(android.content.Context.AUDIO_SERVICE) as AudioManager
+        val outputs = manager.getDevices(AudioManager.GET_DEVICES_OUTPUTS)
+            .filter { it.isSink }
+            .map { device ->
+                val type = when (device.type) {
+                    AudioDeviceInfo.TYPE_BUILTIN_SPEAKER -> "built_in_speaker"
+                    AudioDeviceInfo.TYPE_BUILTIN_EARPIECE -> "earpiece"
+                    AudioDeviceInfo.TYPE_WIRED_HEADPHONES -> "wired_headphones"
+                    AudioDeviceInfo.TYPE_WIRED_HEADSET -> "wired_headset"
+                    AudioDeviceInfo.TYPE_BLUETOOTH_A2DP -> "bluetooth_a2dp"
+                    AudioDeviceInfo.TYPE_BLUETOOTH_SCO -> "bluetooth_sco"
+                    AudioDeviceInfo.TYPE_BLE_HEADSET -> "bluetooth_le_headset"
+                    AudioDeviceInfo.TYPE_USB_DEVICE,
+                    AudioDeviceInfo.TYPE_USB_HEADSET -> "usb_audio"
+                    AudioDeviceInfo.TYPE_HDMI,
+                    AudioDeviceInfo.TYPE_HDMI_ARC,
+                    AudioDeviceInfo.TYPE_HDMI_EARC -> "hdmi"
+                    else -> "other"
+                }
+                mapOf(
+                    "id" to device.id,
+                    "type" to type,
+                    "productName" to device.productName?.toString().orEmpty(),
+                    "sampleRates" to device.sampleRates.toList(),
+                    "channelCounts" to device.channelCounts.toList(),
+                )
+            }
+        return mapOf(
+            "supported" to true,
+            "outputs" to outputs,
+            "hasHeadphones" to outputs.any {
+                it["type"] in setOf("wired_headphones", "wired_headset", "bluetooth_a2dp",
+                    "bluetooth_sco", "bluetooth_le_headset", "usb_audio")
+            },
+            "note" to "Route detection only; it does not prove that global effects are applied to this route."
+        )
     }
 
     private fun requestAudioFocus() {
@@ -425,8 +578,16 @@ class CoreEqAudioPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
 
     override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
         stopPlayback()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            routeCallback?.let { callback ->
+                val manager = appContext.getSystemService(android.content.Context.AUDIO_SERVICE) as AudioManager
+                manager.unregisterAudioDeviceCallback(callback)
+            }
+        }
+        routeCallback = null
         mediaPlayer?.release()
         mediaPlayer = null
+        globalOutputEffects.close()
         channel.setMethodCallHandler(null)
     }
 

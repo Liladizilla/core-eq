@@ -175,16 +175,18 @@ class CoreEqMedia3AudioProcessor : BaseAudioProcessor() {
     @Synchronized
     fun setBandGain(band: Int, gainDb: Float): Boolean {
         if (band !in bandGainsDb.indices || !gainDb.isFinite() || gainDb !in -12.0f..12.0f) return false
+        if (engine != 0L && sampleRateHz > 0 &&
+            nativeSetBandGain(engine, band, gainDb, sampleRateHz) != 0) return false
         bandGainsDb[band] = gainDb
-        return engine == 0L || sampleRateHz == 0 ||
-            nativeSetBandGain(engine, band, gainDb, sampleRateHz) == 0
+        return true
     }
 
     @Synchronized
     fun setOutputGain(gainDb: Float): Boolean {
         if (!gainDb.isFinite() || gainDb !in -24.0f..6.0f) return false
+        if (engine != 0L && nativeSetOutputGain(engine, gainDb) != 0) return false
         outputGainDb = gainDb
-        return engine == 0L || nativeSetOutputGain(engine, gainDb) == 0
+        return true
     }
 
     fun setLimiterEnabled(value: Boolean) { limiterEnabled = value }
@@ -193,8 +195,9 @@ class CoreEqMedia3AudioProcessor : BaseAudioProcessor() {
 
     @Synchronized
     fun setBypassed(value: Boolean): Boolean {
+        if (engine != 0L && nativeSetBypassed(engine, value) != 0) return false
         bypassed = value
-        return engine == 0L || nativeSetBypassed(engine, value) == 0
+        return true
     }
 
     @Synchronized

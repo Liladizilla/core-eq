@@ -42,6 +42,7 @@ class CoreEqAudioPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
     }
     private var engine: Long = 0L
     private var mediaPlayer: CoreEqMedia3Player? = null
+    private val globalOutputEffects = CoreEqGlobalOutputEffects()
     private var lastError: String? = null
     @Volatile private var toneFrequencyHz = 440
     @Volatile private var toneAmplitude = 0.06f
@@ -114,6 +115,48 @@ class CoreEqAudioPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
                 "isPlaying" to false, "playWhenReady" to false, "state" to "idle",
                 "positionMs" to 0L, "durationMs" to null, "mediaUri" to null
             ))
+            "globalEffectCapabilities" -> result.success(globalOutputEffects.probe())
+            "setGlobalEffectsEnabled" -> {
+                val enabled = call.argument<Boolean>("enabled")
+                if (enabled == null) {
+                    result.error("INVALID_EQ_PARAMETER", "Global equalizer enabled must be a boolean.", null)
+                } else if (globalOutputEffects.setEnabled(enabled)) {
+                    result.success(globalOutputEffects.probe())
+                } else {
+                    result.error("GLOBAL_EFFECT_UNAVAILABLE", "This Android device did not accept the global output equalizer request.", globalOutputEffects.probe())
+                }
+            }
+            "setGlobalBassBoostEnabled" -> {
+                val enabled = call.argument<Boolean>("enabled")
+                if (enabled == null) {
+                    result.error("INVALID_EQ_PARAMETER", "Global bass boost enabled must be a boolean.", null)
+                } else if (globalOutputEffects.setBassBoostEnabled(enabled)) {
+                    result.success(globalOutputEffects.probe())
+                } else {
+                    result.error("GLOBAL_EFFECT_UNAVAILABLE", "This Android device did not accept the global output bass boost request.", globalOutputEffects.probe())
+                }
+            }
+            "setGlobalBandGain" -> {
+                val band = call.argument<Int>("band")
+                val gainDb = call.argument<Double>("gainDb")
+                if (band == null || gainDb == null || band !in 0..9 || !gainDb.isFinite() || gainDb !in -12.0..12.0) {
+                    result.error("INVALID_EQ_PARAMETER", "Band must be 0..9 and gain must be -12..12 dB.", null)
+                } else if (globalOutputEffects.setBandGain(band, gainDb.toFloat())) {
+                    result.success(globalOutputEffects.probe())
+                } else {
+                    result.error("GLOBAL_EFFECT_UNAVAILABLE", "The OEM global equalizer rejected this band update.", globalOutputEffects.probe())
+                }
+            }
+            "setGlobalBassBoostStrength" -> {
+                val strength = call.argument<Int>("strength")
+                if (strength == null || strength !in 0..1000) {
+                    result.error("INVALID_EQ_PARAMETER", "Bass boost strength must be 0..1000.", null)
+                } else if (globalOutputEffects.setBassBoostStrength(strength)) {
+                    result.success(globalOutputEffects.probe())
+                } else {
+                    result.error("GLOBAL_EFFECT_UNAVAILABLE", "This device does not expose adjustable global bass boost.", globalOutputEffects.probe())
+                }
+            }
             "startTestTone" -> {
                 val frequencyHz = call.argument<Int>("frequencyHz") ?: 440
                 val amplitude = call.argument<Double>("amplitude")?.toFloat() ?: 0.06f
@@ -478,6 +521,7 @@ class CoreEqAudioPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
         stopPlayback()
         mediaPlayer?.release()
         mediaPlayer = null
+        globalOutputEffects.close()
         channel.setMethodCallHandler(null)
     }
 

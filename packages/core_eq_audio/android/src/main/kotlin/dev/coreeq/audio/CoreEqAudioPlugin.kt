@@ -5,6 +5,8 @@ import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.media.AudioFormat
 import android.media.AudioTrack
+import android.media.AudioDeviceCallback
+import android.media.AudioDeviceInfo
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
@@ -25,6 +27,7 @@ class CoreEqAudioPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
     @Volatile private var worker: Thread? = null
     private var track: AudioTrack? = null
     private var audioManager: AudioManager? = null
+    private var routeCallback: AudioDeviceCallback? = null
     private var audioFocusRequest: AudioFocusRequest? = null
     private var hasAudioFocus = false
     private val audioFocusListener = AudioManager.OnAudioFocusChangeListener { change ->
@@ -59,6 +62,19 @@ class CoreEqAudioPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
         appContext = binding.applicationContext
         channel = MethodChannel(binding.binaryMessenger, "core_eq_audio")
         channel.setMethodCallHandler(this)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val manager = appContext.getSystemService(android.content.Context.AUDIO_SERVICE) as AudioManager
+            val callback = object : AudioDeviceCallback() {
+                override fun onAudioDevicesAdded(addedDevices: Array<out AudioDeviceInfo>) {
+                    mainHandler.post { channel.invokeMethod("audioRouteChanged", audioRouteStatus()) }
+                }
+                override fun onAudioDevicesRemoved(removedDevices: Array<out AudioDeviceInfo>) {
+                    mainHandler.post { channel.invokeMethod("audioRouteChanged", audioRouteStatus()) }
+                }
+            }
+            routeCallback = callback
+            manager.registerAudioDeviceCallback(callback, mainHandler)
+        }
     }
 
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
@@ -116,6 +132,7 @@ class CoreEqAudioPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
                 "positionMs" to 0L, "durationMs" to null, "mediaUri" to null
             ))
             "globalEffectCapabilities" -> result.success(globalOutputEffects.probe())
+            "audioRouteStatus" -> result.success(audioRouteStatus())
             "setGlobalEffectsEnabled" -> {
                 val enabled = call.argument<Boolean>("enabled")
                 if (enabled == null) {
@@ -298,6 +315,48 @@ class CoreEqAudioPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
             }
             else -> result.notImplemented()
         }
+    }
+
+    private fun audioRouteStatus(): Map<String, Any?> {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+            return mapOf("supported" to false, "outputs" to emptyList<Map<String, Any?>>())
+        }
+        val manager = appContext.getSystemService(android.content.Context.AUDIO_SERVICE) as AudioManager
+        val outputs = manager.getDevices(AudioManager.GET_DEVICES_OUTPUTS)
+            .filter { it.isSink }
+            .map { device ->
+                val type = when (device.type) {
+                    AudioDeviceInfo.TYPE_BUILTIN_SPEAKER -> "built_in_speaker"
+                    AudioDeviceInfo.TYPE_BUILTIN_EARPIECE -> "earpiece"
+                    AudioDeviceInfo.TYPE_WIRED_HEADPHONES -> "wired_headphones"
+                    AudioDeviceInfo.TYPE_WIRED_HEADSET -> "wired_headset"
+                    AudioDeviceInfo.TYPE_BLUETOOTH_A2DP -> "bluetooth_a2dp"
+                    AudioDeviceInfo.TYPE_BLUETOOTH_SCO -> "bluetooth_sco"
+                    AudioDeviceInfo.TYPE_BLE_HEADSET -> "bluetooth_le_headset"
+                    AudioDeviceInfo.TYPE_USB_DEVICE,
+                    AudioDeviceInfo.TYPE_USB_HEADSET -> "usb_audio"
+                    AudioDeviceInfo.TYPE_HDMI,
+                    AudioDeviceInfo.TYPE_HDMI_ARC,
+                    AudioDeviceInfo.TYPE_HDMI_EARC -> "hdmi"
+                    else -> "other"
+                }
+                mapOf(
+                    "id" to device.id,
+                    "type" to type,
+                    "productName" to device.productName?.toString().orEmpty(),
+                    "sampleRates" to device.sampleRates.toList(),
+                    "channelCounts" to device.channelCounts.toList(),
+                )
+            }
+        return mapOf(
+            "supported" to true,
+            "outputs" to outputs,
+            "hasHeadphones" to outputs.any {
+                it["type"] in setOf("wired_headphones", "wired_headset", "bluetooth_a2dp",
+                    "bluetooth_sco", "bluetooth_le_headset", "usb_audio")
+            },
+            "note" to "Route detection only; it does not prove that global effects are applied to this route."
+        )
     }
 
     private fun requestAudioFocus() {
@@ -519,6 +578,13 @@ class CoreEqAudioPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
 
     override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
         stopPlayback()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            routeCallback?.let { callback ->
+                val manager = appContext.getSystemService(android.content.Context.AUDIO_SERVICE) as AudioManager
+                manager.unregisterAudioDeviceCallback(callback)
+            }
+        }
+        routeCallback = null
         mediaPlayer?.release()
         mediaPlayer = null
         globalOutputEffects.close()

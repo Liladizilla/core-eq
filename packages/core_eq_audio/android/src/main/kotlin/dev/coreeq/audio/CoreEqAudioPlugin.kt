@@ -151,15 +151,7 @@ class CoreEqAudioPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
                     !gainDb.isFinite() || gainDb !in -12.0..12.0) {
                     result.error("INVALID_EQ_PARAMETER", "Band must be 0..9 and gain must be -12..12 dB.", null)
                 } else {
-                    val mediaResult = mediaPlayer?.setBandGain(band, gainDb.toFloat()) ?: true
-                    if (!mediaResult) {
-                        result.error(
-                            "MEDIA3_EQ_REJECTED",
-                            "Media3 DSP rejected band $band update at ${mediaPlayer?.status()?.get("sampleRateHz")} Hz. The main native engine was not the rejecting component.",
-                            mapOf("component" to "media3", "band" to band)
-                        )
-                        return
-                    }
+                    val previousGain = bandGainsDb[band]
                     val nativeCode = if (engine == 0L) 0 else nativeSetBandGain(engine, band, gainDb.toFloat())
                     if (nativeCode != 0) {
                         result.error(
@@ -167,10 +159,20 @@ class CoreEqAudioPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
                             "Native DSP rejected band $band update (native status $nativeCode).",
                             mapOf("component" to "native", "status" to nativeCode, "band" to band)
                         )
-                    } else {
-                        bandGainsDb[band] = gainDb.toFloat()
-                        result.success(null)
+                        return
                     }
+                    val mediaOk = mediaPlayer?.setBandGain(band, gainDb.toFloat()) ?: true
+                    if (!mediaOk) {
+                        if (engine != 0L) nativeSetBandGain(engine, band, previousGain)
+                        result.error(
+                            "MEDIA3_EQ_REJECTED",
+                            "Media3 DSP rejected band $band update; the native setting was rolled back.",
+                            mapOf("component" to "media3", "band" to band)
+                        )
+                        return
+                    }
+                    bandGainsDb[band] = gainDb.toFloat()
+                    result.success(null)
                 }
             }
             "setOutputGain" -> {
@@ -178,11 +180,28 @@ class CoreEqAudioPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
                 if (gainDb == null || !gainDb.isFinite() || gainDb !in -24.0..6.0) {
                     result.error("INVALID_EQ_PARAMETER", "Output gain must be -24..6 dB.", null)
                 } else {
-                    outputGainDb = gainDb.toFloat()
+                    val previousGain = outputGainDb
                     val code = if (engine == 0L) 0 else nativeSetOutputGain(engine, gainDb.toFloat())
+                    if (code != 0) {
+                        result.error(
+                            "NATIVE_EQ_REJECTED",
+                            "Native DSP rejected output gain (native status $code).",
+                            mapOf("component" to "native", "status" to code)
+                        )
+                        return
+                    }
                     val mediaOk = mediaPlayer?.setOutputGain(gainDb.toFloat()) ?: true
-                    if (code == 0 && mediaOk) result.success(null)
-                    else result.error("NATIVE_EQ_REJECTED", "Native DSP rejected output gain (status $code).", null)
+                    if (!mediaOk) {
+                        if (engine != 0L) nativeSetOutputGain(engine, previousGain)
+                        result.error(
+                            "MEDIA3_EQ_REJECTED",
+                            "Media3 DSP rejected output gain; the native setting was rolled back.",
+                            mapOf("component" to "media3")
+                        )
+                        return
+                    }
+                    outputGainDb = gainDb.toFloat()
+                    result.success(null)
                 }
             }
             "setSpatialEnabled" -> {
@@ -210,11 +229,28 @@ class CoreEqAudioPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
                 if (bypassed == null) {
                     result.error("INVALID_EQ_PARAMETER", "Bypass must be a boolean.", null)
                 } else {
-                    this.bypassed = bypassed
+                    val previousBypass = this.bypassed
                     val code = if (engine == 0L) 0 else nativeSetBypassed(engine, bypassed)
+                    if (code != 0) {
+                        result.error(
+                            "NATIVE_EQ_REJECTED",
+                            "Native DSP rejected bypass update (native status $code).",
+                            mapOf("component" to "native", "status" to code)
+                        )
+                        return
+                    }
                     val mediaOk = mediaPlayer?.setBypassed(bypassed) ?: true
-                    if (code == 0 && mediaOk) result.success(null)
-                    else result.error("NATIVE_EQ_REJECTED", "Native DSP rejected bypass update (status $code).", null)
+                    if (!mediaOk) {
+                        if (engine != 0L) nativeSetBypassed(engine, previousBypass)
+                        result.error(
+                            "MEDIA3_EQ_REJECTED",
+                            "Media3 DSP rejected bypass update; the native setting was rolled back.",
+                            mapOf("component" to "media3")
+                        )
+                        return
+                    }
+                    this.bypassed = bypassed
+                    result.success(null)
                 }
             }
             else -> result.notImplemented()

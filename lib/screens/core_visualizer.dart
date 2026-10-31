@@ -86,6 +86,7 @@ class _CoreVisualizerScreenState extends State<CoreVisualizerScreen>
   void dispose() {
     _statusTimer?.cancel();
     _motion.dispose();
+    unawaited(_audio.dispose());
     super.dispose();
   }
 

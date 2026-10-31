@@ -179,8 +179,8 @@ test('forwards selected frequency to the Android audio channel', () async {
     ]);
     expect(calls[1].arguments, {'band': 2, 'gainDb': 3.0});
     expect(calls[3].arguments, {'strength': 750});
-    await expectLater(audio.setGlobalBandGain(10, 3), throwsArgumentError);
-    await expectLater(audio.setGlobalBassBoostStrength(1001), throwsArgumentError);
+    expect(() => audio.setGlobalBandGain(10, 3), throwsArgumentError);
+    expect(() => audio.setGlobalBassBoostStrength(1001), throwsArgumentError);
     await audio.dispose();
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, null);

@@ -65,6 +65,15 @@ class _CoreEqGlobalOutputPanelState extends State<CoreEqGlobalOutputPanel> {
         _route = values[1];
         _eqEnabled = values[0]['equalizerEnabled'] == true;
         _bassEnabled = values[0]['bassBoostEnabled'] == true;
+        final levels = values[0]['coreBandLevelsDb'];
+        if (levels is List && levels.length == _gains.length) {
+          for (var i = 0; i < _gains.length; i++) {
+            final levelMb = levels[i];
+            if (levelMb is num) _gains[i] = (levelMb.toDouble() / 100).clamp(-12, 12);
+          }
+        }
+        final strength = values[0]['bassStrength'];
+        if (strength is num) _bassStrength = strength.toDouble().clamp(0, 1000);
         _loading = false;
         _error = null;
       });
@@ -87,6 +96,15 @@ class _CoreEqGlobalOutputPanelState extends State<CoreEqGlobalOutputPanel> {
         _capabilities = {..._capabilities, ...result};
         _eqEnabled = result['equalizerEnabled'] == true;
         _bassEnabled = result['bassBoostEnabled'] == true;
+        final levels = result['coreBandLevelsDb'];
+        if (levels is List && levels.length == _gains.length) {
+          for (var i = 0; i < _gains.length; i++) {
+            final levelMb = levels[i];
+            if (levelMb is num) _gains[i] = (levelMb.toDouble() / 100).clamp(-12, 12);
+          }
+        }
+        final strength = result['bassStrength'];
+        if (strength is num) _bassStrength = strength.toDouble().clamp(0, 1000);
       });
     } catch (error) {
       if (!mounted) return;

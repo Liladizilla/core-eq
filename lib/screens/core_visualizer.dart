@@ -3,7 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../engine/core_eq_control_mapper.dart';
 import '../engine/core_eq_android_audio.dart';
-import '../widgets/core_eq_media_player_panel.dart';
+import '../widgets/core_eq_global_output_panel.dart';
 import '../widgets/core_eq_test_tone_panel.dart';
 
 const _bg = Color(0xFF090B0E);
@@ -258,6 +258,8 @@ class _CoreVisualizerScreenState extends State<CoreVisualizerScreen>
   );
 
   Widget _controls() => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+    CoreEqGlobalOutputPanel(audio: _audio),
+    const SizedBox(height: 12),
     _panel(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       _sectionTitle('SOUND PROFILE', trailing: 'PRESETS'),
       const SizedBox(height: 14),
@@ -368,13 +370,11 @@ class _CoreVisualizerScreenState extends State<CoreVisualizerScreen>
       const Icon(Icons.memory_rounded, color: _muted, size: 18),
       const SizedBox(width: 10),
       const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('PROCESSING ENGINE', style: TextStyle(color: _text, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: .5)),
+        Text('APP-OWNED DSP DIAGNOSTICS', style: TextStyle(color: _text, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: .5)),
         SizedBox(height: 4),
-        Text('10-band EQ, bass boost, output gain, limiting and mid/side stereo widening run through native DSP for the generated test tone and CORE-EQ local-file player. Microphone capture and audio from other apps are not connected.', style: TextStyle(color: _muted, fontSize: 10, height: 1.4)),
+        Text('These controls exercise CORE-EQ native DSP on its generated diagnostic tone only. They do not alter Spotify or other apps. Use ANDROID OUTPUT EFFECTS above for the OEM global output path when this device supports it.', style: TextStyle(color: _muted, fontSize: 10, height: 1.4)),
       ])),
     ])),
-    const SizedBox(height: 12),
-    const CoreEqMediaPlayerPanel(),
     const SizedBox(height: 12),
     CoreEqTestTonePanel(audio: _audio),
   ]);

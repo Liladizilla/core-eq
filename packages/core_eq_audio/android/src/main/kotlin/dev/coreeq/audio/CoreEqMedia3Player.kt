@@ -150,6 +150,8 @@ internal class CoreEqMedia3Player(
         "processedFrames" to (processor?.processedFrames ?: 0L),
         "sampleRateHz" to (processor?.currentSampleRateHz ?: 0),
         "channels" to (processor?.currentChannelCount ?: 0),
+        "processorConfigured" to (processor?.isConfigured ?: false),
+        "lastProcessedUptimeMs" to (processor?.lastProcessedUptimeMs ?: 0L),
     )
 
     fun release() {

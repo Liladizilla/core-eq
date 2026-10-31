@@ -35,6 +35,9 @@ class CoreEqMedia3AudioProcessor : BaseAudioProcessor() {
         private set
     val currentSampleRateHz: Int get() = sampleRateHz
     val currentChannelCount: Int get() = channels
+    val isConfigured: Boolean get() = sampleRateHz > 0 && channels in 1..2
+    @Volatile var lastProcessedUptimeMs: Long = 0L
+        private set
 
     init {
         System.loadLibrary("core_eq")
@@ -106,6 +109,7 @@ class CoreEqMedia3AudioProcessor : BaseAudioProcessor() {
             signalDifferenceRms = diagnostics.differenceRms
             limiterGain = 1.0f
             processedFrames += frames.toLong()
+            lastProcessedUptimeMs = android.os.SystemClock.elapsedRealtime()
             inputBuffer.position(inputBuffer.limit())
             return
         }
@@ -164,6 +168,7 @@ class CoreEqMedia3AudioProcessor : BaseAudioProcessor() {
         outputRmsLevel = diagnostics.outputRms
         signalDifferenceRms = diagnostics.differenceRms
         processedFrames += frames.toLong()
+        lastProcessedUptimeMs = android.os.SystemClock.elapsedRealtime()
         inputBuffer.position(inputBuffer.limit())
     }
 
@@ -213,6 +218,7 @@ class CoreEqMedia3AudioProcessor : BaseAudioProcessor() {
         outputRmsLevel = 0.0f
         signalDifferenceRms = 0.0f
         processedFrames = 0L
+        lastProcessedUptimeMs = 0L
         limiterGain = 1.0f
     }
 

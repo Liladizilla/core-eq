@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
@@ -47,9 +49,36 @@ final class CoreEqAndroidAudioStatus {
 /// PCM stays in a direct native buffer and never crosses the method channel.
 final class CoreEqAndroidAudio {
   CoreEqAndroidAudio({MethodChannel? channel})
-      : _channel = channel ?? const MethodChannel('core_eq_audio');
+      : _channel = channel ?? const MethodChannel('core_eq_audio') {
+    _channel.setMethodCallHandler((call) async {
+      if (call.method == 'audioRouteChanged' && call.arguments is Map) {
+        _audioRouteChanges.add(Map<Object?, Object?>.from(call.arguments as Map));
+      }
+    });
+  }
 
   final MethodChannel _channel;
+  final StreamController<Map<Object?, Object?>> _audioRouteChanges =
+      StreamController<Map<Object?, Object?>>.broadcast();
+
+  /// Emits a fresh output-device snapshot whenever Android reports a route change.
+  Stream<Map<Object?, Object?>> get audioRouteChanges => _audioRouteChanges.stream;
+
+  Future<Map<Object?, Object?>> readAudioRouteStatus() async {
+    final result = await _channel.invokeMapMethod<Object?, Object?>('audioRouteStatus');
+    if (result == null) {
+      throw PlatformException(
+        code: 'EMPTY_AUDIO_ROUTE_STATUS',
+        message: 'Android returned no audio route status.',
+      );
+    }
+    return result;
+  }
+
+  Future<void> dispose() async {
+    await _audioRouteChanges.close();
+    _channel.setMethodCallHandler(null);
+  }
 
   Future<CoreEqAndroidAudioStatus> startTestTone({
     int frequencyHz = 440,

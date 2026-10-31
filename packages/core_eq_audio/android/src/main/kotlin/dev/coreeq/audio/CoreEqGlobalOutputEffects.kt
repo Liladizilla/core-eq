@@ -105,8 +105,10 @@ internal class CoreEqGlobalOutputEffects : Closeable {
         val bass = bassBoost ?: return false
         return runCatching {
             if (!bass.strengthSupported) return false
+            // OEM implementations may quantize strength to a smaller set of steps.
+            // A successful setter is accepted; probe() returns the actual rounded value.
             bass.setStrength(strength.toShort())
-            bass.roundedStrength.toInt() == strength
+            true
         }.onFailure { lastError = it.message ?: it.javaClass.simpleName }.getOrDefault(false)
     }
 

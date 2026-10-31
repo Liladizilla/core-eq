@@ -108,6 +108,53 @@ final class CoreEqAndroidAudio {
     await _channel.invokeMethod<void>('setBypassed', {'bypassed': bypassed});
   }
 
+  /// Probes Android's optional global output-mix effects (audio session 0).
+  /// Availability and routing are OEM-dependent; false means this device refused it.
+  Future<Map<Object?, Object?>> readGlobalEffectCapabilities() async {
+    final result = await _channel.invokeMapMethod<Object?, Object?>('globalEffectCapabilities');
+    if (result == null) {
+      throw PlatformException(
+        code: 'EMPTY_GLOBAL_EFFECT_STATUS',
+        message: 'Android returned no global output effect capability status.',
+      );
+    }
+    return result;
+  }
+
+  Future<Map<Object?, Object?>> setGlobalEffectsEnabled(bool enabled) =>
+      _globalEffectCommand('setGlobalEffectsEnabled', {'enabled': enabled});
+
+  Future<Map<Object?, Object?>> setGlobalBassBoostEnabled(bool enabled) =>
+      _globalEffectCommand('setGlobalBassBoostEnabled', {'enabled': enabled});
+
+  Future<Map<Object?, Object?>> setGlobalBandGain(int band, double gainDb) {
+    if (band < 0 || band > 9 || !gainDb.isFinite || gainDb < -12 || gainDb > 12) {
+      throw ArgumentError('Global EQ band must be 0..9 and gain must be -12..12 dB.');
+    }
+    return _globalEffectCommand('setGlobalBandGain', {'band': band, 'gainDb': gainDb});
+  }
+
+  Future<Map<Object?, Object?>> setGlobalBassBoostStrength(int strength) {
+    if (strength < 0 || strength > 1000) {
+      throw ArgumentError.value(strength, 'strength', 'Expected 0..1000.');
+    }
+    return _globalEffectCommand('setGlobalBassBoostStrength', {'strength': strength});
+  }
+
+  Future<Map<Object?, Object?>> _globalEffectCommand(
+    String method,
+    Map<String, Object?> arguments,
+  ) async {
+    final result = await _channel.invokeMapMethod<Object?, Object?>(method, arguments);
+    if (result == null) {
+      throw PlatformException(
+        code: 'EMPTY_GLOBAL_EFFECT_STATUS',
+        message: 'Android returned no global output effect status.',
+      );
+    }
+    return result;
+  }
+
   Future<CoreEqMediaStatus> playMedia(String uri) async {
     if (uri.trim().isEmpty) throw ArgumentError.value(uri, 'uri', 'Media URI cannot be empty.');
     final result = await _channel.invokeMapMethod<Object?, Object?>('playMedia', {'uri': uri});

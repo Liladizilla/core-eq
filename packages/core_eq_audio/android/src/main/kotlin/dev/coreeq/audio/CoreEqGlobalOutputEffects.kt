@@ -31,6 +31,26 @@ internal class CoreEqGlobalOutputEffects : Closeable {
             "bandLevelRangeMb" to runCatching {
                 eq?.bandLevelRange?.map { it.toInt() } ?: emptyList<Int>()
             }.getOrDefault(emptyList<Int>()),
+            "bandLevelsMb" to runCatching {
+                val count = eq?.numberOfBands?.toInt() ?: 0
+                (0 until count).map { index -> eq!!.getBandLevel(index.toShort()).toInt() }
+            }.getOrDefault(emptyList<Int>()),
+            "bandCenterFrequenciesHz" to runCatching {
+                val count = eq?.numberOfBands?.toInt() ?: 0
+                (0 until count).map { index -> eq!!.getCenterFreq(index.toShort()) / 1000 }
+            }.getOrDefault(emptyList<Int>()),
+            "coreBandLevelsDb" to runCatching {
+                val count = eq?.numberOfBands?.toInt() ?: 0
+                val targets = floatArrayOf(31.25f, 62.5f, 125f, 250f, 500f, 1000f, 2000f, 4000f, 8000f, 16000f)
+                if (count == 0) emptyList<Int>() else targets.map { target ->
+                    val selected = (0 until count).minByOrNull { index ->
+                        kotlin.math.abs(eq!!.getCenterFreq(index.toShort()) - (target * 1000f).toInt())
+                    }!!
+                    eq!!.getBandLevel(selected.toShort()).toInt()
+                }
+            }.getOrDefault(emptyList<Int>()),
+            "bassStrength" to runCatching { bass?.roundedStrength?.toInt() ?: 0 }.getOrDefault(0),
+            "bassStrengthSupported" to runCatching { bass?.strengthSupported == true }.getOrDefault(false),
             "error" to lastError,
             "scope" to "OEM-dependent global output mix; not guaranteed for every device or route"
         )
@@ -85,8 +105,10 @@ internal class CoreEqGlobalOutputEffects : Closeable {
         val bass = bassBoost ?: return false
         return runCatching {
             if (!bass.strengthSupported) return false
+            // OEM implementations may quantize strength to a smaller set of steps.
+            // A successful setter is accepted; probe() returns the actual rounded value.
             bass.setStrength(strength.toShort())
-            bass.roundedStrength.toInt() == strength
+            true
         }.onFailure { lastError = it.message ?: it.javaClass.simpleName }.getOrDefault(false)
     }
 

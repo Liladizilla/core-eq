@@ -124,5 +124,67 @@ test('forwards selected frequency to the Android audio channel', () async {
   TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
       .setMockMethodCallHandler(channel, null);
 });
+  test('probes Android global output effect capabilities', () async {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    const channel = MethodChannel('core_eq_global_probe_test');
+    final calls = <MethodCall>[];
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+      calls.add(call);
+      return {
+        'available': true,
+        'equalizerAvailable': true,
+        'bassBoostAvailable': false,
+        'equalizerEnabled': true,
+        'bassBoostEnabled': false,
+        'bandCount': 5,
+        'coreBandLevelsDb': [0, 100, 200, 100, 0, -100, -200, -100, 0, 0],
+        'bassStrength': 0,
+      };
+    });
+
+    final audio = CoreEqAndroidAudio(channel: channel);
+    final status = await audio.readGlobalEffectCapabilities();
+
+    expect(calls.single.method, 'globalEffectCapabilities');
+    expect(status['equalizerAvailable'], isTrue);
+    expect(status['bandCount'], 5);
+    expect(status['coreBandLevelsDb'], hasLength(10));
+    await audio.dispose();
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, null);
+  });
+
+  test('validates and forwards global output EQ commands', () async {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    const channel = MethodChannel('core_eq_global_command_test');
+    final calls = <MethodCall>[];
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+      calls.add(call);
+      return {'equalizerEnabled': true, 'coreBandLevelsDb': List<int>.filled(10, 300)};
+    });
+
+    final audio = CoreEqAndroidAudio(channel: channel);
+    await audio.setGlobalEffectsEnabled(true);
+    await audio.setGlobalBandGain(2, 3.0);
+    await audio.setGlobalBassBoostEnabled(true);
+    await audio.setGlobalBassBoostStrength(750);
+
+    expect(calls.map((call) => call.method), [
+      'setGlobalEffectsEnabled',
+      'setGlobalBandGain',
+      'setGlobalBassBoostEnabled',
+      'setGlobalBassBoostStrength',
+    ]);
+    expect(calls[1].arguments, {'band': 2, 'gainDb': 3.0});
+    expect(calls[3].arguments, {'strength': 750});
+    expect(() => audio.setGlobalBandGain(10, 3), throwsArgumentError);
+    expect(() => audio.setGlobalBassBoostStrength(1001), throwsArgumentError);
+    await audio.dispose();
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, null);
+  });
+
 
 }

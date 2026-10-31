@@ -261,8 +261,18 @@ class _CoreVisualizerScreenState extends State<CoreVisualizerScreen>
   Widget _controls() => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
     CoreEqGlobalOutputPanel(audio: _audio),
     const SizedBox(height: 12),
+    _panel(child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      const Icon(Icons.memory_rounded, color: _amber, size: 17),
+      const SizedBox(width: 9),
+      const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text('LOCAL DSP LAB', style: TextStyle(color: _text, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: .7)),
+        SizedBox(height: 4),
+        Text('Everything below processes CORE-EQ generated tone only. It does not change Spotify or other apps. External-player controls are in ANDROID OUTPUT EFFECTS above.', style: TextStyle(color: _muted, fontSize: 10, height: 1.4)),
+      ])),
+    ])),
+    const SizedBox(height: 12),
     _panel(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      _sectionTitle('SOUND PROFILE', trailing: 'PRESETS'),
+      _sectionTitle('LOCAL DSP PROFILE', trailing: 'PRESETS'),
       const SizedBox(height: 14),
       Wrap(spacing: 7, runSpacing: 8, children: List.generate(_presets.length, (i) {
         final selected = _preset == i;
@@ -297,7 +307,7 @@ class _CoreVisualizerScreenState extends State<CoreVisualizerScreen>
     const SizedBox(height: 12),
     _panel(child: Column(children: [
       Row(children: [
-        const Expanded(child: Text('BASS BOOST', style: TextStyle(color: _text, fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: .5))),
+        const Expanded(child: Text('LOCAL BASS BOOST', style: TextStyle(color: _text, fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: .5))),
         Switch.adaptive(value: _bassBoost, activeTrackColor: _cyan, onChanged: (v) {
           setState(() {
             _bassBoost = v;
@@ -313,7 +323,7 @@ class _CoreVisualizerScreenState extends State<CoreVisualizerScreen>
       }, suffix: ' dB'),
       const Divider(color: _line, height: 22),
       Row(children: [
-        const Expanded(child: Text('GRAPHIC EQUALIZER', style: TextStyle(color: _text, fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: .5))),
+        const Expanded(child: Text('LOCAL GRAPHIC EQ', style: TextStyle(color: _text, fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: .5))),
         TextButton(onPressed: () {
           setState(() {
             for (var i = 0; i < _bands.length; i++) { _bands[i] = 0; }
@@ -418,7 +428,7 @@ class _CoreVisualizerScreenState extends State<CoreVisualizerScreen>
         ),
         onPressed: () { setState(() => _bypass = !_bypass); _syncNativeSettings(); },
         icon: Icon(_bypass ? Icons.pause_circle_outline_rounded : Icons.play_circle_outline_rounded, size: 19),
-        label: Text(_bypass ? 'BYPASS SELECTED' : 'BYPASS', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: .8)),
+        label: Text(_bypass ? 'LOCAL DSP BYPASSED' : 'LOCAL DSP BYPASS', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: .8)),
       )),
       const SizedBox(width: 10),
       OutlinedButton(

@@ -151,11 +151,26 @@ class CoreEqAudioPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
                     !gainDb.isFinite() || gainDb !in -12.0..12.0) {
                     result.error("INVALID_EQ_PARAMETER", "Band must be 0..9 and gain must be -12..12 dB.", null)
                 } else {
-                    bandGainsDb[band] = gainDb.toFloat()
-                    val code = if (engine == 0L) 0 else nativeSetBandGain(engine, band, gainDb.toFloat())
-                    val mediaOk = mediaPlayer?.setBandGain(band, gainDb.toFloat()) ?: true
-                    if (code == 0 && mediaOk) result.success(null)
-                    else result.error("NATIVE_EQ_REJECTED", "Native DSP rejected band update (status $code).", null)
+                    val mediaResult = mediaPlayer?.setBandGain(band, gainDb.toFloat()) ?: true
+                    if (!mediaResult) {
+                        result.error(
+                            "MEDIA3_EQ_REJECTED",
+                            "Media3 DSP rejected band $band update at ${mediaPlayer?.status()?.get("sampleRateHz")} Hz. The main native engine was not the rejecting component.",
+                            mapOf("component" to "media3", "band" to band)
+                        )
+                        return
+                    }
+                    val nativeCode = if (engine == 0L) 0 else nativeSetBandGain(engine, band, gainDb.toFloat())
+                    if (nativeCode != 0) {
+                        result.error(
+                            "NATIVE_EQ_REJECTED",
+                            "Native DSP rejected band $band update (native status $nativeCode).",
+                            mapOf("component" to "native", "status" to nativeCode, "band" to band)
+                        )
+                    } else {
+                        bandGainsDb[band] = gainDb.toFloat()
+                        result.success(null)
+                    }
                 }
             }
             "setOutputGain" -> {

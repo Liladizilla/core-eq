@@ -69,11 +69,11 @@ class _CoreEqGlobalOutputPanelState extends State<CoreEqGlobalOutputPanel> {
         if (levels is List && levels.length == _gains.length) {
           for (var i = 0; i < _gains.length; i++) {
             final levelMb = levels[i];
-            if (levelMb is num) _gains[i] = (levelMb.toDouble() / 100).clamp(-12, 12);
+            if (levelMb is num) _gains[i] = (levelMb.toDouble() / 100).clamp(-12, 12).toDouble();
           }
         }
         final strength = values[0]['bassStrength'];
-        if (strength is num) _bassStrength = strength.toDouble().clamp(0, 1000);
+        if (strength is num) _bassStrength = strength.toDouble().clamp(0, 1000).toDouble();
         _loading = false;
         _error = null;
       });
